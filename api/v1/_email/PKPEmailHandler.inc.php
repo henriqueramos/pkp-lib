@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Queue as Queue;
 
 import('lib.pkp.classes.handler.APIHandler');
 
+use PKP\core\PKPContainer;
 use PKP\mail\Mail;
 
 use Psr\Http\Message\ServerRequestInterface;

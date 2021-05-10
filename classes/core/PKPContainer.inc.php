@@ -16,10 +16,15 @@
 namespace PKP\core;
 
 use Illuminate\Config\Repository;
-use Illuminate\Container\Container;
-use Illuminate\Support\Facades\Facade;
 
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Console\Kernel as KernelContract;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Foundation\Console\Kernel;
+use Illuminate\Support\Facades\Facade;
 use PKP\config\Config;
+
+use Throwable;
 
 class PKPContainer extends Container
 {
@@ -41,8 +46,8 @@ class PKPContainer extends Container
         static::setInstance($this);
         $this->instance('app', $this);
         $this->instance(Container::class, $this);
-        $this->singleton(Illuminate\Contracts\Debug\ExceptionHandler::class, function () {
-            return new class() implements Illuminate\Contracts\Debug\ExceptionHandler {
+        $this->singleton(ExceptionHandler::class, function () {
+            return new class() implements ExceptionHandler {
                 public function shouldReport(Throwable $e)
                 {
                     return true;
@@ -64,6 +69,10 @@ class PKPContainer extends Container
                 }
             };
         });
+        $this->singleton(
+            KernelContract::class,
+            Kernel::class
+        );
 
         Facade::setFacadeApplication($this);
     }
@@ -80,6 +89,7 @@ class PKPContainer extends Container
         $this->register(new \Illuminate\Database\DatabaseServiceProvider($this));
         $this->register(new \Illuminate\Bus\BusServiceProvider($this));
         $this->register(new \Illuminate\Queue\QueueServiceProvider($this));
+        $this->register(new PKPQueueProvider());
     }
 
     /**
@@ -143,6 +153,10 @@ class PKPContainer extends Container
             'charset' => Config::getVar('i18n', 'connection_charset', 'utf8'),
             'collation' => Config::getVar('database', 'collation', 'utf8_general_ci'),
         ];
+        $items['database']['failed'] = [
+            'database' => $driver,
+            'table' => 'failed_jobs',
+        ];
 
         // Queue connection
         $items['queue']['default'] = 'database';
@@ -152,6 +166,7 @@ class PKPContainer extends Container
             'table' => 'jobs',
             'queue' => 'default',
             'retry_after' => 90,
+            'after_commit' => true,
         ];
 
         $this->instance('config', new Repository($items)); // create instance and bind to use globally
