@@ -13,7 +13,13 @@
  * @brief Class to published submissions scheduled for publication.
  */
 
-import('lib.pkp.classes.scheduledTask.ScheduledTask');
+namespace PKP\task;
+
+use APP\core\Services;
+use PKP\core\Core;
+use PKP\scheduledTask\ScheduledTask;
+
+use PKP\submission\PKPSubmission;
 
 class PublishSubmissions extends ScheduledTask
 {
@@ -30,15 +36,13 @@ class PublishSubmissions extends ScheduledTask
      */
     public function executeActions()
     {
-        import('classes.submission.Submission'); // import constants
-
         $contextIds = Services::get('context')->getIds([
             'isEnabled' => true,
         ]);
         foreach ($contextIds as $contextId) {
             $submissionsIterator = Services::get('submission')->getMany([
                 'contextId' => $contextId,
-                'status' => STATUS_SCHEDULED,
+                'status' => PKPSubmission::STATUS_SCHEDULED,
             ]);
             foreach ($submissionsIterator as $submission) {
                 $datePublished = $submission->getCurrentPublication()->getData('datePublished');
@@ -50,4 +54,8 @@ class PublishSubmissions extends ScheduledTask
 
         return true;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\task\PublishSubmissions', '\PublishSubmissions');
 }

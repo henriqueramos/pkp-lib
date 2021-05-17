@@ -13,11 +13,14 @@
  * @brief Handle requests for the author dashboard.
  */
 
-// Import base class
-import('classes.handler.Handler');
-
+use APP\handler\Handler;
+use APP\template\TemplateManager;
+use APP\workflow\EditorDecisionActionsManager;
 use PKP\log\SubmissionEmailLogEntry;
+use PKP\security\authorization\AuthorDashboardAccessPolicy;
+
 use PKP\services\PKPSchemaService;
+use PKP\submission\PKPSubmission;
 use PKP\submission\SubmissionFile;
 
 abstract class PKPAuthorDashboardHandler extends Handler
@@ -49,7 +52,6 @@ abstract class PKPAuthorDashboardHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.AuthorDashboardAccessPolicy');
         $this->addPolicy(new AuthorDashboardAccessPolicy($request, $args, $roleAssignments), true);
 
         return parent::authorize($request, $args, $roleAssignments);
@@ -174,7 +176,10 @@ abstract class PKPAuthorDashboardHandler extends Handler
                 $editorDecisions = $editDecisionDao->getEditorDecisions($submission->getId(), $submission->getData('stageId'), $lastReviewRound->getRound());
                 if (!empty($editorDecisions)) {
                     $lastDecision = end($editorDecisions)['decision'];
-                    $revisionDecisions = [SUBMISSION_EDITOR_DECISION_PENDING_REVISIONS, SUBMISSION_EDITOR_DECISION_RESUBMIT];
+                    $revisionDecisions = [
+                        EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_PENDING_REVISIONS,
+                        EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_RESUBMIT
+                    ];
                     if (in_array($lastDecision, $revisionDecisions)) {
                         $actionArgs['submissionId'] = $submission->getId();
                         $actionArgs['stageId'] = $submission->getData('stageId');
@@ -233,16 +238,15 @@ abstract class PKPAuthorDashboardHandler extends Handler
         $citationsForm = new PKP\components\forms\publication\PKPCitationsForm($latestPublicationApiUrl, $latestPublication);
 
         // Import constants
-        import('classes.submission.Submission');
         import('classes.components.forms.publication.PublishForm');
 
         $templateMgr->setConstants([
-            'STATUS_QUEUED',
-            'STATUS_PUBLISHED',
-            'STATUS_DECLINED',
-            'STATUS_SCHEDULED',
-            'FORM_TITLE_ABSTRACT',
-            'FORM_CITATIONS',
+            'STATUS_QUEUED' => PKPSubmission::STATUS_QUEUED,
+            'STATUS_PUBLISHED' => PKPSubmission::STATUS_PUBLISHED,
+            'STATUS_DECLINED' => PKPSubmission::STATUS_DECLINED,
+            'STATUS_SCHEDULED' => PKPSubmission::STATUS_SCHEDULED,
+            'FORM_TITLE_ABSTRACT' => FORM_TITLE_ABSTRACT,
+            'FORM_CITATIONS' => FORM_CITATIONS,
         ]);
 
         // Get the submission props without the full publication details. We'll
@@ -351,7 +355,9 @@ abstract class PKPAuthorDashboardHandler extends Handler
         if ($metadataEnabled) {
             $vocabSuggestionUrlBase = $request->getDispatcher()->url($request, PKPApplication::ROUTE_API, $submissionContext->getData('urlPath'), 'vocabs', null, null, ['vocab' => '__vocab__']);
             $metadataForm = new PKP\components\forms\publication\PKPMetadataForm($latestPublicationApiUrl, $locales, $latestPublication, $submissionContext, $vocabSuggestionUrlBase);
-            $templateMgr->setConstants(['FORM_METADATA']);
+            $templateMgr->setConstants([
+                'FORM_METADATA' => FORM_METADATA,
+            ]);
             $state['components'][FORM_METADATA] = $metadataForm->getConfig();
             $state['publicationFormIds'][] = FORM_METADATA;
         }

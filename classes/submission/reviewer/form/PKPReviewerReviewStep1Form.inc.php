@@ -13,7 +13,22 @@
  * @brief Form for Step 1 of a review.
  */
 
-import('lib.pkp.classes.submission.reviewer.form.ReviewerReviewForm');
+namespace PKP\submission\reviewer\form;
+
+use APP\i18n\AppLocale;
+use APP\template\TemplateManager;
+use PKP\db\DAORegistry;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+
+use PKP\linkAction\request\ConfirmationModal;
+use PKP\submission\reviewer\ReviewerAction;
+
+// FIXME: Add namespacing
+use ReviewerViewMetadataLinkAction;
+
+import('lib.pkp.controllers.confirmationModal.linkAction.ViewCompetingInterestGuidelinesLinkAction');
+use ViewCompetingInterestGuidelinesLinkAction;
 
 class PKPReviewerReviewStep1Form extends ReviewerReviewForm
 {
@@ -28,7 +43,7 @@ class PKPReviewerReviewStep1Form extends ReviewerReviewForm
         parent::__construct($request, $reviewerSubmission, $reviewAssignment, 1);
         $context = $request->getContext();
         if (!$reviewAssignment->getDateConfirmed() && $context->getData('privacyStatement')) {
-            $this->addCheck(new FormValidator($this, 'privacyConsent', 'required', 'user.profile.form.privacyConsentRequired'));
+            $this->addCheck(new \PKP\form\validation\FormValidator($this, 'privacyConsent', 'required', 'user.profile.form.privacyConsentRequired'));
         }
     }
 
@@ -76,8 +91,6 @@ class PKPReviewerReviewStep1Form extends ReviewerReviewForm
         //
         // Assign the link actions
         //
-        import('lib.pkp.classes.linkAction.request.AjaxModal');
-        import('lib.pkp.classes.linkAction.request.ConfirmationModal');
 
         // "View metadata" action.
         import('lib.pkp.controllers.modals.review.ReviewerViewMetadataLinkAction');
@@ -86,7 +99,6 @@ class PKPReviewerReviewStep1Form extends ReviewerReviewForm
 
         // include the confirmation modal for competing interests if the context has them.
         if ($context->getLocalizedData('competingInterests') != '') {
-            import('lib.pkp.controllers.confirmationModal.linkAction.ViewCompetingInterestGuidelinesLinkAction');
             $competingInterestsAction = new ViewCompetingInterestGuidelinesLinkAction($request);
             $templateMgr->assign('competingInterestsAction', $competingInterestsAction);
         }
@@ -106,7 +118,6 @@ class PKPReviewerReviewStep1Form extends ReviewerReviewForm
 
         $templateMgr->assign('aboutDueDatesAction', $aboutDueDateAction);
 
-        import('lib.pkp.classes.linkAction.request.AjaxModal');
         $declineReviewLinkAction = new LinkAction(
             'declineReview',
             new AjaxModal(
@@ -155,4 +166,8 @@ class PKPReviewerReviewStep1Form extends ReviewerReviewForm
 
         parent::execute(...$functionParams);
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\submission\reviewer\form\PKPReviewerReviewStep1Form', '\PKPReviewerReviewStep1Form');
 }

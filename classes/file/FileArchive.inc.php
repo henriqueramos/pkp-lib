@@ -13,6 +13,12 @@
  * @brief Class provides functionality for creating an archive of files.
  */
 
+namespace PKP\file;
+
+use Exception;
+
+use PKP\config\Config;
+
 class FileArchive
 {
     /**
@@ -81,4 +87,8 @@ class FileArchive
     {
         return self::zipFunctional() || self::tarFunctional();
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\file\FileArchive', '\FileArchive');
 }

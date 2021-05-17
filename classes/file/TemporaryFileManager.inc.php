@@ -15,7 +15,11 @@
  * @brief Class defining operations for temporary file management.
  */
 
-import('lib.pkp.classes.file.PrivateFileManager');
+namespace PKP\file;
+
+use PKP\core\Core;
+use PKP\core\PKPString;
+use PKP\db\DAORegistry;
 
 class TemporaryFileManager extends PrivateFileManager
 {
@@ -141,4 +145,8 @@ class TemporaryFileManager extends PrivateFileManager
             }
         }
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\file\TemporaryFileManager', '\TemporaryFileManager');
 }

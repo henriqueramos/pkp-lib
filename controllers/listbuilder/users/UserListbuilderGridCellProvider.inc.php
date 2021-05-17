@@ -13,7 +13,8 @@
  * @brief Base class for a cell provider that can retrieve labels from arrays
  */
 
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
+use PKP\controllers\grid\GridCellProvider;
+use PKP\controllers\grid\GridColumn;
 
 class UserListbuilderGridCellProvider extends GridCellProvider
 {
@@ -26,7 +27,7 @@ class UserListbuilderGridCellProvider extends GridCellProvider
      *
      * @see GridCellProvider::getTemplateVarsFromRowColumn()
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array

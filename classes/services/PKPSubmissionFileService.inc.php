@@ -12,28 +12,32 @@
  * @brief Helper class that encapsulates business logic for publications
  */
 
-namespace PKP\Services;
+namespace PKP\services;
 
 use APP\core\Application;
 use APP\core\Services;
-
 use PKP\core\Core;
 use PKP\db\DAORegistry;
 use PKP\db\DAOResultFactory;
 use PKP\log\SubmissionEmailLogEntry;
+use PKP\log\SubmissionFileEventLogEntry;
+use PKP\log\SubmissionFileLog;
 use PKP\mail\SubmissionMailTemplate;
+use PKP\notification\PKPNotification;
 use PKP\plugins\HookRegistry;
-use PKP\Services\interfaces\EntityPropertyInterface;
-use PKP\Services\interfaces\EntityReadInterface;
-use PKP\Services\interfaces\EntityWriteInterface;
-use PKP\services\PKPSchemaService;
-use PKP\Services\QueryBuilders\PKPSubmissionFileQueryBuilder;
+use PKP\security\authorization\SubmissionFileAccessPolicy;
+use PKP\services\interfaces\EntityPropertyInterface;
+use PKP\services\interfaces\EntityReadInterface;
+use PKP\services\interfaces\EntityWriteInterface;
+use PKP\services\queryBuilders\PKPSubmissionFileQueryBuilder;
+
 use PKP\submission\SubmissionFile;
+use PKP\validation\ValidatorFactory;
 
 class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInterface, EntityWriteInterface
 {
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::get()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::get()
      */
     public function get($id)
     {
@@ -41,7 +45,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getCount()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getCount()
      */
     public function getCount($args = [])
     {
@@ -49,7 +53,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getIds()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getIds()
      */
     public function getIds($args = [])
     {
@@ -57,7 +61,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getMany()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getMany()
      *
      * @param null|mixed $args
      */
@@ -77,7 +81,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getMax()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getMax()
      *
      * @param null|mixed $args
      */
@@ -87,7 +91,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getQueryBuilder()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getQueryBuilder()
      */
     public function getQueryBuilder($args = [])
     {
@@ -124,7 +128,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getProperties()
      *
      * @param null|mixed $args
      */
@@ -224,7 +228,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getSummaryProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getSummaryProperties()
      *
      * @param null|mixed $args
      */
@@ -236,7 +240,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getFullProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getFullProperties()
      *
      * @param null|mixed $args
      */
@@ -248,7 +252,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityWriteInterface::validate()
+     * @copydoc \PKP\services\interfaces\EntityWriteInterface::validate()
      */
     public function validate($action, $props, $allowedLocales, $primaryLocale)
     {
@@ -258,14 +262,13 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
         );
         $schemaService = Services::get('schema');
 
-        import('lib.pkp.classes.validation.ValidatorFactory');
-        $validator = \ValidatorFactory::make(
+        $validator = ValidatorFactory::make(
             $props,
             $schemaService->getValidationRules(PKPSchemaService::SCHEMA_SUBMISSION_FILE, $allowedLocales)
         );
 
         // Check required fields if we're adding a context
-        \ValidatorFactory::required(
+        ValidatorFactory::required(
             $validator,
             $action,
             $schemaService->getRequiredProps(PKPSchemaService::SCHEMA_SUBMISSION_FILE),
@@ -275,10 +278,10 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
         );
 
         // Check for input from disallowed locales
-        \ValidatorFactory::allowedLocales($validator, $schemaService->getMultilingualProps(PKPSchemaService::SCHEMA_SUBMISSION_FILE), $allowedLocales);
+        ValidatorFactory::allowedLocales($validator, $schemaService->getMultilingualProps(PKPSchemaService::SCHEMA_SUBMISSION_FILE), $allowedLocales);
 
         // Do not allow the uploaderUserId or createdAt properties to be modified
-        if ($action === VALIDATE_ACTION_EDIT) {
+        if ($action === EntityWriteInterface::VALIDATE_ACTION_EDIT) {
             $validator->after(function ($validator) use ($props) {
                 if (!empty($props['uploaderUserId']) && !$validator->errors()->get('uploaderUserId')) {
                     $validator->errors()->add('uploaderUserId', __('submission.file.notAllowedUploaderUserId'));
@@ -318,7 +321,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::add()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::add()
      */
     public function add($submissionFile, $request)
     {
@@ -329,12 +332,10 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
 
         $submission = Services::get('submission')->get($submissionFile->getData('submissionId'));
 
-        import('lib.pkp.classes.log.SubmissionFileLog');
-        import('lib.pkp.classes.log.SubmissionFileEventLogEntry'); // constants
-        \SubmissionFileLog::logEvent(
+        SubmissionFileLog::logEvent(
             $request,
             $submissionFile,
-            SUBMISSION_LOG_FILE_UPLOAD,
+            SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_UPLOAD,
             'submission.event.fileUploaded',
             [
                 'fileStage' => $submissionFile->getData('fileStage'),
@@ -353,7 +354,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
         \SubmissionLog::logEvent(
             $request,
             $submission,
-            SUBMISSION_LOG_FILE_REVISION_UPLOAD,
+            SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_REVISION_UPLOAD,
             'submission.event.fileRevised',
             [
                 'fileStage' => $submissionFile->getFileStage(),
@@ -387,7 +388,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
             $notificationMgr = new \NotificationManager();
             $notificationMgr->updateNotification(
                 $request,
-                [NOTIFICATION_TYPE_PENDING_INTERNAL_REVISIONS, NOTIFICATION_TYPE_PENDING_EXTERNAL_REVISIONS],
+                [PKPNotification::NOTIFICATION_TYPE_PENDING_INTERNAL_REVISIONS, PKPNotification::NOTIFICATION_TYPE_PENDING_EXTERNAL_REVISIONS],
                 $authorUserIds,
                 ASSOC_TYPE_SUBMISSION,
                 $submissionFile->getData('submissionId')
@@ -461,9 +462,8 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
 
                 if ($mail->getRecipients()) {
                     if (!$mail->send($request)) {
-                        import('classes.notification.NotificationManager');
                         $notificationMgr = new \NotificationManager();
-                        $notificationMgr->createTrivialNotification($request->getUser()->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
+                        $notificationMgr->createTrivialNotification($request->getUser()->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
                     }
                 }
             }
@@ -475,7 +475,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::edit()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::edit()
      */
     public function edit($submissionFile, $params, $request)
     {
@@ -487,12 +487,10 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
 
         DAORegistry::getDAO('SubmissionFileDAO')->updateObject($submissionFile);
 
-        import('lib.pkp.classes.log.SubmissionFileLog');
-        import('lib.pkp.classes.log.SubmissionFileEventLogEntry'); // constants
-        \SubmissionFileLog::logEvent(
+        SubmissionFileLog::logEvent(
             $request,
             $submissionFile,
-            $newFileUploaded ? SUBMISSION_LOG_FILE_REVISION_UPLOAD : SUBMISSION_LOG_FILE_EDIT,
+            $newFileUploaded ? SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_REVISION_UPLOAD : SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_EDIT,
             $newFileUploaded ? 'submission.event.revisionUploaded' : 'submission.event.fileEdited',
             [
                 'fileStage' => $submissionFile->getData('fileStage'),
@@ -512,7 +510,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
         \SubmissionLog::logEvent(
             $request,
             $submission,
-            $newFileUploaded ? SUBMISSION_LOG_FILE_REVISION_UPLOAD : SUBMISSION_LOG_FILE_EDIT,
+            $newFileUploaded ? SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_REVISION_UPLOAD : SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_EDIT,
             $newFileUploaded ? 'submission.event.revisionUploaded' : 'submission.event.fileEdited',
             [
                 'fileStage' => $submissionFile->getFileStage(),
@@ -530,7 +528,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::delete()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::delete()
      */
     public function delete($submissionFile)
     {
@@ -562,7 +560,6 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
         $noteDao->deleteByAssoc(ASSOC_TYPE_SUBMISSION_FILE, $submissionFile->getId());
 
         // Update tasks
-        import('classes.notification.NotificationManager');
         $notificationMgr = new \NotificationManager();
         switch ($submissionFile->getData('fileStage')) {
             case SubmissionFile::SUBMISSION_FILE_REVIEW_REVISION:
@@ -574,7 +571,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
                 }
                 $notificationMgr->updateNotification(
                     Application::get()->getRequest(),
-                    [NOTIFICATION_TYPE_PENDING_INTERNAL_REVISIONS, NOTIFICATION_TYPE_PENDING_EXTERNAL_REVISIONS],
+                    [PKPNotification::NOTIFICATION_TYPE_PENDING_INTERNAL_REVISIONS, PKPNotification::NOTIFICATION_TYPE_PENDING_EXTERNAL_REVISIONS],
                     $authorUserIds,
                     ASSOC_TYPE_SUBMISSION,
                     $submissionFile->getData('submissionId')
@@ -584,7 +581,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
             case SubmissionFile::SUBMISSION_FILE_COPYEDIT:
                 $notificationMgr->updateNotification(
                     Application::get()->getRequest(),
-                    [NOTIFICATION_TYPE_ASSIGN_COPYEDITOR, NOTIFICATION_TYPE_AWAITING_COPYEDITS],
+                    [PKPNotification::NOTIFICATION_TYPE_ASSIGN_COPYEDITOR, PKPNotification::NOTIFICATION_TYPE_AWAITING_COPYEDITS],
                     null,
                     ASSOC_TYPE_SUBMISSION,
                     $submissionFile->getData('submissionId')
@@ -615,7 +612,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
         \SubmissionFileLog::logEvent(
             Application::get()->getRequest(),
             $submissionFile,
-            SUBMISSION_LOG_FILE_DELETE,
+            SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_DELETE,
             'submission.event.fileDeleted',
             [
                 'fileStage' => $submissionFile->getData('fileStage'),
@@ -663,7 +660,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
                 && !empty(array_intersect($allowedRoles, $stageAssignments[WORKFLOW_STAGE_ID_SUBMISSION]))) {
             $hasEditorialAssignment = !empty(array_intersect($notAuthorRoles, $stageAssignments[WORKFLOW_STAGE_ID_SUBMISSION]));
             // Authors only have read access
-            if ($action === SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
+            if ($action === SubmissionFileAccessPolicy::SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
                 $allowedFileStages[] = SUBMISSION_FILE_SUBMISSION;
             }
         }
@@ -671,7 +668,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
         if (array_key_exists(WORKFLOW_STAGE_ID_INTERNAL_REVIEW, $stageAssignments)) {
             $hasEditorialAssignment = !empty(array_intersect($notAuthorRoles, $stageAssignments[WORKFLOW_STAGE_ID_INTERNAL_REVIEW]));
             // Authors can only write revision files under specific conditions
-            if ($action === SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
+            if ($action === SubmissionFileAccessPolicy::SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
                 $allowedFileStages[] = SUBMISSION_FILE_INTERNAL_REVIEW_REVISION;
             }
             // Authors can never access review files
@@ -683,7 +680,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
         if (array_key_exists(WORKFLOW_STAGE_ID_EXTERNAL_REVIEW, $stageAssignments)) {
             $hasEditorialAssignment = !empty(array_intersect($notAuthorRoles, $stageAssignments[WORKFLOW_STAGE_ID_EXTERNAL_REVIEW]));
             // Authors can only write revision files under specific conditions
-            if ($action === SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
+            if ($action === SubmissionFileAccessPolicy::SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
                 $allowedFileStages[] = SUBMISSION_FILE_REVIEW_REVISION;
                 $allowedFileStages[] = SUBMISSION_FILE_ATTACHMENT;
             }
@@ -697,7 +694,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
                 && !empty(array_intersect($allowedRoles, $stageAssignments[WORKFLOW_STAGE_ID_EDITING]))) {
             $hasEditorialAssignment = !empty(array_intersect($notAuthorRoles, $stageAssignments[WORKFLOW_STAGE_ID_EDITING]));
             // Authors only have read access
-            if ($action === SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
+            if ($action === SubmissionFileAccessPolicy::SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
                 $allowedFileStages[] = SUBMISSION_FILE_COPYEDIT;
             }
             if ($hasEditorialAssignment) {
@@ -709,7 +706,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
                 && !empty(array_intersect($allowedRoles, $stageAssignments[WORKFLOW_STAGE_ID_PRODUCTION]))) {
             $hasEditorialAssignment = !empty(array_intersect($notAuthorRoles, $stageAssignments[WORKFLOW_STAGE_ID_PRODUCTION]));
             // Authors only have read access
-            if ($action === SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
+            if ($action === SubmissionFileAccessPolicy::SUBMISSION_FILE_ACCESS_READ || $hasEditorialAssignment) {
                 $allowedFileStages[] = SUBMISSION_FILE_PROOF;
             }
             if ($hasEditorialAssignment) {
@@ -729,20 +726,19 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
      */
     public function getFileStages()
     {
-        import('lib.pkp.classes.submission.SubmissionFile');
         $stages = [
-            SUBMISSION_FILE_SUBMISSION,
-            SUBMISSION_FILE_NOTE,
-            SUBMISSION_FILE_REVIEW_FILE,
-            SUBMISSION_FILE_REVIEW_ATTACHMENT,
-            SUBMISSION_FILE_FINAL,
-            SUBMISSION_FILE_COPYEDIT,
-            SUBMISSION_FILE_PROOF,
-            SUBMISSION_FILE_PRODUCTION_READY,
-            SUBMISSION_FILE_ATTACHMENT,
-            SUBMISSION_FILE_REVIEW_REVISION,
-            SUBMISSION_FILE_DEPENDENT,
-            SUBMISSION_FILE_QUERY,
+            SubmissionFile::SUBMISSION_FILE_SUBMISSION,
+            SubmissionFile::SUBMISSION_FILE_NOTE,
+            SubmissionFile::SUBMISSION_FILE_REVIEW_FILE,
+            SubmissionFile::SUBMISSION_FILE_REVIEW_ATTACHMENT,
+            SubmissionFile::SUBMISSION_FILE_FINAL,
+            SubmissionFile::SUBMISSION_FILE_COPYEDIT,
+            SubmissionFile::SUBMISSION_FILE_PROOF,
+            SubmissionFile::SUBMISSION_FILE_PRODUCTION_READY,
+            SubmissionFile::SUBMISSION_FILE_ATTACHMENT,
+            SubmissionFile::SUBMISSION_FILE_REVIEW_REVISION,
+            SubmissionFile::SUBMISSION_FILE_DEPENDENT,
+            SubmissionFile::SUBMISSION_FILE_QUERY,
         ];
 
         HookRegistry::call('SubmissionFile::fileStages', [&$stages]);

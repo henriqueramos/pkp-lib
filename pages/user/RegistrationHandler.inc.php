@@ -16,6 +16,8 @@
 
 import('pages.user.UserHandler');
 
+use APP\template\TemplateManager;
+
 class RegistrationHandler extends UserHandler
 {
     /**
@@ -84,11 +86,7 @@ class RegistrationHandler extends UserHandler
         }
 
         $reason = null;
-        if (Config::getVar('security', 'implicit_auth')) {
-            Validation::login('', '', $reason);
-        } else {
-            Validation::login($regForm->getData('username'), $regForm->getData('password'), $reason);
-        }
+        Validation::login($regForm->getData('username'), $regForm->getData('password'), $reason);
 
         if ($reason !== null) {
             $this->setupTemplate($request);

@@ -13,12 +13,17 @@
  * @brief Form for promoting a submission (to external review or editing)
  */
 
+use APP\notification\Notification;
+use APP\notification\NotificationManager;
+use APP\workflow\EditorDecisionActionsManager;
+use PKP\notification\PKPNotification;
+
+use PKP\submission\action\EditorAction;
+use PKP\submission\reviewRound\ReviewRound;
 use PKP\submission\SubmissionFile;
 
+// FIXME: Add namespacing
 import('lib.pkp.controllers.modals.editorDecision.form.EditorDecisionWithEmailForm');
-
-// Access decision actions constants.
-import('classes.workflow.EditorDecisionActionsManager');
 
 class PromoteForm extends EditorDecisionWithEmailForm
 {
@@ -96,15 +101,14 @@ class PromoteForm extends EditorDecisionWithEmailForm
         // Record the decision.
         $reviewRound = $this->getReviewRound();
         $decision = $this->getDecision();
-        import('lib.pkp.classes.submission.action.EditorAction');
         $editorAction = new EditorAction();
         $editorAction->recordDecision($request, $submission, $decision, $actionLabels, $reviewRound);
 
         // Identify email key and status of round.
         switch ($decision) {
-            case SUBMISSION_EDITOR_DECISION_ACCEPT:
+            case EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_ACCEPT:
                 $emailKey = 'EDITOR_DECISION_ACCEPT';
-                $status = REVIEW_ROUND_STATUS_ACCEPTED;
+                $status = ReviewRound::REVIEW_ROUND_STATUS_ACCEPTED;
 
                 $this->_updateReviewRoundStatus($submission, $status, $reviewRound);
 
@@ -129,9 +133,9 @@ class PromoteForm extends EditorDecisionWithEmailForm
                 $this->_sendReviewMailToAuthor($submission, $emailKey, $request);
                 break;
 
-            case SUBMISSION_EDITOR_DECISION_EXTERNAL_REVIEW:
+            case EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_EXTERNAL_REVIEW:
                 $emailKey = 'EDITOR_DECISION_SEND_TO_EXTERNAL';
-                $status = REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL;
+                $status = ReviewRound::REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL;
 
                 $this->_updateReviewRoundStatus($submission, $status, $reviewRound);
 
@@ -139,12 +143,12 @@ class PromoteForm extends EditorDecisionWithEmailForm
                 $editorAction->incrementWorkflowStage($submission, WORKFLOW_STAGE_ID_EXTERNAL_REVIEW, $request);
 
                 // Create an initial external review round.
-                $this->_initiateReviewRound($submission, WORKFLOW_STAGE_ID_EXTERNAL_REVIEW, $request, REVIEW_ROUND_STATUS_PENDING_REVIEWERS);
+                $this->_initiateReviewRound($submission, WORKFLOW_STAGE_ID_EXTERNAL_REVIEW, $request, ReviewRound::REVIEW_ROUND_STATUS_PENDING_REVIEWERS);
 
                 // Send email to the author.
                 $this->_sendReviewMailToAuthor($submission, $emailKey, $request);
                 break;
-            case SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION:
+            case EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION:
                 $emailKey = 'EDITOR_DECISION_SEND_TO_PRODUCTION';
                 // FIXME: this is copy-pasted from above, save the FILE_GALLEY.
 
@@ -192,11 +196,11 @@ class PromoteForm extends EditorDecisionWithEmailForm
                         $notificationMgr->createNotification(
                             $request,
                             $stageAssignment->getUserId(),
-                            NOTIFICATION_TYPE_PAYMENT_REQUIRED,
+                            PKPNotification::NOTIFICATION_TYPE_PAYMENT_REQUIRED,
                             $context->getId(),
                             ASSOC_TYPE_QUEUED_PAYMENT,
                             $queuedPayment->getId(),
-                            NOTIFICATION_LEVEL_TASK
+                            Notification::NOTIFICATION_LEVEL_TASK
                         );
                         $userIds[] = $stageAssignment->getUserId();
                     }
@@ -216,9 +220,9 @@ class PromoteForm extends EditorDecisionWithEmailForm
     public function _getDecisions()
     {
         return [
-            SUBMISSION_EDITOR_DECISION_EXTERNAL_REVIEW,
-            SUBMISSION_EDITOR_DECISION_ACCEPT,
-            SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_EXTERNAL_REVIEW,
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_ACCEPT,
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION
         ];
     }
 }

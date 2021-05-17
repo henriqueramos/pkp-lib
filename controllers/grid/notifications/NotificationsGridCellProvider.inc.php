@@ -13,21 +13,26 @@
  * @brief Class for a cell provider that can retrieve labels from notifications
  */
 
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use PKP\controllers\grid\GridCellProvider;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
-import('lib.pkp.classes.linkAction.request.AjaxAction');
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxAction;
 
 class NotificationsGridCellProvider extends GridCellProvider
 {
     /**
      * Get cell actions associated with this row/column combination
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array an array of LinkAction instances
      */
-    public function getCellActions($request, $row, $column, $position = GRID_ACTION_POSITION_DEFAULT)
+    public function getCellActions($request, $row, $column, $position = GridHandler::GRID_ACTION_POSITION_DEFAULT)
     {
         assert($column->getId() == 'task');
 
@@ -76,7 +81,7 @@ class NotificationsGridCellProvider extends GridCellProvider
      * Extracts variables for a given column from a data element
      * so that they may be assigned to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -106,7 +111,7 @@ class NotificationsGridCellProvider extends GridCellProvider
                 $queuedPayment = $queuedPaymentDao->getById($notification->getAssocId());
                 if ($queuedPayment) {
                     switch ($queuedPayment->getType()) {
-                    case PAYMENT_TYPE_PUBLICATION:
+                    case \PKP\payment\PaymentManager::PAYMENT_TYPE_PUBLICATION: // FIXME: This is OJS-only; move out of pkp-lib
                         $submissionDao = DAORegistry::getDAO('SubmissionDAO'); /** @var SubmissionDAO $submissionDao */
                         return $submissionDao->getById($queuedPayment->getAssocId())->getLocalizedTitle();
                 }
@@ -136,13 +141,13 @@ class NotificationsGridCellProvider extends GridCellProvider
             case ASSOC_TYPE_REVIEW_ROUND:
                 $reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO'); /** @var ReviewRoundDAO $reviewRoundDao */
                 $reviewRound = $reviewRoundDao->getById($notification->getAssocId());
-                assert(is_a($reviewRound, 'ReviewRound'));
+                assert($reviewRound instanceof \ReviewRound); // FIXME: Add namespacing
                 $submissionId = $reviewRound->getSubmissionId();
                 break;
             case ASSOC_TYPE_QUERY:
                 $queryDao = DAORegistry::getDAO('QueryDAO'); /** @var QueryDAO $queryDao */
                 $query = $queryDao->getById($notification->getAssocId());
-                assert(is_a($query, 'Query'));
+                assert($query instanceof \PKP\query\Query);
                 switch ($query->getAssocType()) {
                     case ASSOC_TYPE_SUBMISSION:
                         $submissionId = $query->getAssocId();
@@ -163,12 +168,12 @@ class NotificationsGridCellProvider extends GridCellProvider
         if (!isset($submissionId) && isset($fileId)) {
             assert(is_numeric($fileId));
             $submissionFile = Services::get('submissionFile')->get($fileId);
-            assert(is_a($submissionFile, 'SubmissionFile'));
+            assert($submissionFile instanceof \PKP\submissionFile\SubmissionFile);
             $submissionId = $submissionFile->getData('submissionId');
         }
         assert(is_numeric($submissionId));
         $submission = Services::get('submission')->get($submissionId);
-        assert(is_a($submission, 'Submission'));
+        assert($submission instanceof \APP\submission\Submission);
 
         return $submission->getLocalizedTitle();
     }

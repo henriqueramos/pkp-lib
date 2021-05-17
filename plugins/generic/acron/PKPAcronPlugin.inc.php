@@ -15,9 +15,12 @@
  * hook implementation.
  */
 
-import('lib.pkp.classes.plugins.GenericPlugin');
-import('lib.pkp.classes.scheduledTask.ScheduledTaskHelper');
-
+use APP\notification\NotificationManager;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxAction;
+use PKP\notification\PKPNotification;
+use PKP\plugins\GenericPlugin;
+use PKP\scheduledTask\ScheduledTaskHelper;
 use PKP\xml\XMLNode;
 
 // TODO: Error handling. If a scheduled task encounters an error...?
@@ -98,7 +101,6 @@ class PKPAcronPlugin extends GenericPlugin
      */
     public function getActions($request, $actionArgs)
     {
-        import('lib.pkp.classes.linkAction.request.AjaxAction');
         $router = $request->getRouter();
         return array_merge(
             $this->getEnabled() ? [
@@ -127,7 +129,7 @@ class PKPAcronPlugin extends GenericPlugin
                 $user = $request->getUser();
                 $notificationManager->createTrivialNotification(
                     $user->getId(),
-                    NOTIFICATION_TYPE_SUCCESS,
+                    PKPNotification::NOTIFICATION_TYPE_SUCCESS,
                     ['contents' => __('plugins.generic.acron.tasksReloaded')]
                 );
                 return \PKP\db\DAO::getDataChangedEvent();

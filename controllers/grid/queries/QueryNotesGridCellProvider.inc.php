@@ -13,9 +13,10 @@
  * @brief Base class for a cell provider that can retrieve query note info.
  */
 
+use PKP\controllers\grid\DataObjectGridCellProvider;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 use PKP\submission\SubmissionFile;
-
-import('lib.pkp.classes.controllers.grid.DataObjectGridCellProvider');
 
 class QueryNotesGridCellProvider extends DataObjectGridCellProvider
 {
@@ -40,7 +41,7 @@ class QueryNotesGridCellProvider extends DataObjectGridCellProvider
      * Extracts variables for a given column from a data element
      * so that they may be assigned to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -64,7 +65,7 @@ class QueryNotesGridCellProvider extends DataObjectGridCellProvider
     /**
      * @copydoc GridCellProvider::getCellActions()
      */
-    public function getCellActions($request, $row, $column, $position = GRID_ACTION_POSITION_DEFAULT)
+    public function getCellActions($request, $row, $column, $position = GridHandler::GRID_ACTION_POSITION_DEFAULT)
     {
         switch ($column->getId()) {
             case 'contents':

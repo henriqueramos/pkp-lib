@@ -14,10 +14,16 @@
  * N.B. Requires a subclass to implement the "reviewerId" to be added.
  */
 
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use PKP\controllers\grid\users\reviewer\PKPReviewerGridHandler;
+use PKP\form\Form;
+use PKP\linkAction\LinkAction;
 use PKP\mail\SubmissionMailTemplate;
-use PKP\submission\SubmissionFile;
+use PKP\notification\PKPNotification;
 
-import('lib.pkp.classes.form.Form');
+use PKP\submission\action\EditorAction;
+use PKP\submission\SubmissionFile;
 
 class ReviewerForm extends Form
 {
@@ -46,11 +52,11 @@ class ReviewerForm extends Form
         $this->setReviewRound($reviewRound);
 
         // Validation checks for this form
-        $this->addCheck(new FormValidator($this, 'responseDueDate', 'required', 'editor.review.errorAddingReviewer'));
-        $this->addCheck(new FormValidator($this, 'reviewDueDate', 'required', 'editor.review.errorAddingReviewer'));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'responseDueDate', 'required', 'editor.review.errorAddingReviewer'));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'reviewDueDate', 'required', 'editor.review.errorAddingReviewer'));
 
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     //
@@ -378,7 +384,6 @@ class ReviewerForm extends Form
 
         $reviewMethod = (int) $this->getData('reviewMethod');
 
-        import('lib.pkp.classes.submission.action.EditorAction');
         $editorAction = new EditorAction();
         $editorAction->addReviewer($request, $submission, $reviewerId, $currentReviewRound, $reviewDueDate, $responseDueDate, $reviewMethod);
 
@@ -443,9 +448,8 @@ class ReviewerForm extends Form
                 'submissionReviewUrl' => $dispatcher->url($request, PKPApplication::ROUTE_PAGE, null, 'reviewer', 'submission', null, $reviewUrlArgs)
             ]);
             if (!$mail->send($request)) {
-                import('classes.notification.NotificationManager');
                 $notificationMgr = new NotificationManager();
-                $notificationMgr->createTrivialNotification($request->getUser()->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
+                $notificationMgr->createTrivialNotification($request->getUser()->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
             }
         }
 
@@ -455,7 +459,7 @@ class ReviewerForm extends Form
         $msgKey = $this->getData('skipEmail') ? 'notification.addedReviewerNoEmail' : 'notification.addedReviewer';
         $notificationMgr->createTrivialNotification(
             $currentUser->getId(),
-            NOTIFICATION_TYPE_SUCCESS,
+            PKPNotification::NOTIFICATION_TYPE_SUCCESS,
             ['contents' => __($msgKey, ['reviewerName' => $reviewer->getFullName()])]
         );
 
@@ -482,7 +486,7 @@ class ReviewerForm extends Form
                 'submissionId' => $this->getSubmissionId(),
                 'stageId' => $reviewRound->getStageId(),
                 'reviewRoundId' => $reviewRound->getId(),
-                'selectionType' => REVIEWER_SELECT_ADVANCED_SEARCH,
+                'selectionType' => PKPReviewerGridHandler::REVIEWER_SELECT_ADVANCED_SEARCH,
             ])),
             __('editor.submission.backToSearch'),
             'return'

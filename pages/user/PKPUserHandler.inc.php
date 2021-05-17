@@ -13,9 +13,11 @@
  * @brief Handle requests for user functions.
  */
 
-import('classes.handler.Handler');
+use APP\handler\Handler;
 
+use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
+
 use PKP\user\InterestManager;
 
 class PKPUserHandler extends Handler

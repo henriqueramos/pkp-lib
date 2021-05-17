@@ -12,8 +12,12 @@
  * @brief Provide information about plugins to the plugin gallery grid handler
  */
 
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
-import('lib.pkp.classes.linkAction.request.AjaxModal');
+use PKP\controllers\grid\GridCellProvider;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\plugins\GalleryPlugin;
 
 class PluginGalleryGridCellProvider extends GridCellProvider
 {
@@ -21,7 +25,7 @@ class PluginGalleryGridCellProvider extends GridCellProvider
      * Extracts variables for a given column from a data element
      * so that they may be assigned to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -30,7 +34,7 @@ class PluginGalleryGridCellProvider extends GridCellProvider
     {
         $element = $row->getData();
         $columnId = $column->getId();
-        assert(is_a($element, 'GalleryPlugin') && !empty($columnId));
+        assert(($element instanceof GalleryPlugin) && !empty($columnId));
         switch ($columnId) {
             case 'name':
                 // The name is returned as an action.
@@ -68,12 +72,12 @@ class PluginGalleryGridCellProvider extends GridCellProvider
     /**
      * Get cell actions associated with this row/column combination
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array an array of LinkAction instances
      */
-    public function getCellActions($request, $row, $column, $position = GRID_ACTION_POSITION_DEFAULT)
+    public function getCellActions($request, $row, $column, $position = GridHandler::GRID_ACTION_POSITION_DEFAULT)
     {
         $element = $row->getData();
         switch ($column->getId()) {

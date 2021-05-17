@@ -15,7 +15,7 @@
  *   entities.
  */
 
-namespace PKP\Services\QueryBuilders\Interfaces;
+namespace PKP\services\queryBuilders\interfaces;
 
 interface EntityQueryBuilderInterface
 {
@@ -45,7 +45,7 @@ interface EntityQueryBuilderInterface
      * of matching rows.
      *
      * ```php
-     * $qb = new \PKP\Services\QueryBuilders\PublicationQueryBuilder();
+     * $qb = new \PKP\services\queryBuilders\PublicationQueryBuilder();
      * $result = $qb
      *   ->filterByContextIds(1)
      *   ->getQuery()
@@ -72,7 +72,7 @@ interface EntityQueryBuilderInterface
      * and `pluck`, can also be used.
      *
      * ```
-     * $qb = new \PKP\Services\QueryBuilders\PublicationQueryBuilder();
+     * $qb = new \PKP\services\queryBuilders\PublicationQueryBuilder();
      * $result = $qb
      *   ->filterByContextIds(1)
      *   ->getQuery()

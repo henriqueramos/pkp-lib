@@ -14,12 +14,15 @@
  *  resubmit for review), or to decline the submission.
  */
 
+use APP\template\TemplateManager;
+use APP\workflow\EditorDecisionActionsManager;
 use PKP\mail\SubmissionMailTemplate;
 
-import('lib.pkp.controllers.modals.editorDecision.form.EditorDecisionWithEmailForm');
+use PKP\submission\action\EditorAction;
+use PKP\submission\reviewRound\ReviewRound;
 
-// Access decision actions constants.
-import('classes.workflow.EditorDecisionActionsManager');
+// FIXME: Add namespacing
+import('lib.pkp.controllers.modals.editorDecision.form.EditorDecisionWithEmailForm');
 
 class SendReviewsForm extends EditorDecisionWithEmailForm
 {
@@ -121,7 +124,6 @@ class SendReviewsForm extends EditorDecisionWithEmailForm
         $reviewRound = $this->getReviewRound();
         $decision = $this->getDecision();
         $stageId = $this->getStageId();
-        import('lib.pkp.classes.submission.action.EditorAction');
         $editorAction = new EditorAction();
         $editorAction->recordDecision($request, $submission, $decision, $actionLabels, $reviewRound, $stageId);
 
@@ -129,24 +131,24 @@ class SendReviewsForm extends EditorDecisionWithEmailForm
 
         // Identify email key and status of round.
         switch ($decision) {
-            case SUBMISSION_EDITOR_DECISION_PENDING_REVISIONS:
+            case EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_PENDING_REVISIONS:
                 $emailKey = 'EDITOR_DECISION_REVISIONS';
-                $status = REVIEW_ROUND_STATUS_REVISIONS_REQUESTED;
+                $status = ReviewRound::REVIEW_ROUND_STATUS_REVISIONS_REQUESTED;
                 break;
 
-            case SUBMISSION_EDITOR_DECISION_RESUBMIT:
+            case EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_RESUBMIT:
                 $emailKey = 'EDITOR_DECISION_RESUBMIT';
-                $status = REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW;
+                $status = ReviewRound::REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW;
                 break;
 
-            case SUBMISSION_EDITOR_DECISION_DECLINE:
+            case EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_DECLINE:
                 $emailKey = 'EDITOR_DECISION_DECLINE';
-                $status = REVIEW_ROUND_STATUS_DECLINED;
+                $status = ReviewRound::REVIEW_ROUND_STATUS_DECLINED;
                 break;
 
-            case SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE:
+            case EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE:
                 $emailKey = 'EDITOR_DECISION_INITIAL_DECLINE';
-                $status = REVIEW_ROUND_STATUS_DECLINED;
+                $status = ReviewRound::REVIEW_ROUND_STATUS_DECLINED;
                 break;
 
             default:
@@ -170,10 +172,10 @@ class SendReviewsForm extends EditorDecisionWithEmailForm
     public function _getDecisions()
     {
         return [
-            SUBMISSION_EDITOR_DECISION_PENDING_REVISIONS,
-            SUBMISSION_EDITOR_DECISION_RESUBMIT,
-            SUBMISSION_EDITOR_DECISION_DECLINE,
-            SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_PENDING_REVISIONS,
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_RESUBMIT,
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_DECLINE,
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE
         ];
     }
 }

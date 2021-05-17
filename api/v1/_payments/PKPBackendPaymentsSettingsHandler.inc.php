@@ -13,9 +13,13 @@
  *  possible to deprecate this when we have a working endpoint for plugin
  *  settings.
  */
-import('lib.pkp.classes.handler.APIHandler');
 
 use APP\core\Services;
+use PKP\handler\APIHandler;
+use PKP\security\authorization\PolicySet;
+use PKP\security\authorization\RoleBasedHandlerOperationPolicy;
+
+use PKP\services\interfaces\EntityWriteInterface;
 
 class PKPBackendPaymentsSettingsHandler extends APIHandler
 {
@@ -45,10 +49,8 @@ class PKPBackendPaymentsSettingsHandler extends APIHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.PolicySet');
-        $rolePolicy = new PolicySet(COMBINING_PERMIT_OVERRIDES);
+        $rolePolicy = new PolicySet(PolicySet::COMBINING_PERMIT_OVERRIDES);
 
-        import('lib.pkp.classes.security.authorization.RoleBasedHandlerOperationPolicy');
         foreach ($roleAssignments as $role => $operations) {
             $rolePolicy->addPolicy(new RoleBasedHandlerOperationPolicy($request, $role, $operations));
         }
@@ -86,7 +88,7 @@ class PKPBackendPaymentsSettingsHandler extends APIHandler
 
         if (isset($params['currency'])) {
             $errors = $contextService->validate(
-                VALIDATE_ACTION_EDIT,
+                EntityWriteInterface::VALIDATE_ACTION_EDIT,
                 ['currency' => $params['currency']],
                 $context->getSupportedFormLocales(),
                 $context->getPrimaryLocale()

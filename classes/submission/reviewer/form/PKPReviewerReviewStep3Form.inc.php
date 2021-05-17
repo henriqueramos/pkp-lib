@@ -13,9 +13,23 @@
  * @brief Form for Step 3 of a review.
  */
 
-import('lib.pkp.classes.submission.reviewer.form.ReviewerReviewForm');
+namespace PKP\submission\reviewer\form;
 
+use APP\core\Application;
+use APP\log\SubmissionEventLogEntry;
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use PKP\core\Core;
+
+use PKP\db\DAORegistry;
+use PKP\log\SubmissionLog;
+use PKP\notification\PKPNotification;
+use PKP\reviewForm\ReviewFormElement;
 use PKP\submission\SubmissionComment;
+
+// FIXME: Add namespacing
+import('lib.pkp.controllers.confirmationModal.linkAction.ViewReviewGuidelinesLinkAction');
+use ViewReviewGuidelinesLinkAction;
 
 class PKPReviewerReviewStep3Form extends ReviewerReviewForm
 {
@@ -32,7 +46,7 @@ class PKPReviewerReviewStep3Form extends ReviewerReviewForm
         // Validation checks for this form
         $reviewFormElementDao = DAORegistry::getDAO('ReviewFormElementDAO'); /** @var ReviewFormElementDAO $reviewFormElementDao */
         $requiredReviewFormElementIds = $reviewFormElementDao->getRequiredReviewFormElementIds($reviewAssignment->getReviewFormId());
-        $this->addCheck(new FormValidatorCustom($this, 'reviewFormResponses', 'required', 'reviewer.submission.reviewFormResponse.form.responseRequired', function ($reviewFormResponses) use ($requiredReviewFormElementIds) {
+        $this->addCheck(new \PKP\form\validation\FormValidatorCustom($this, 'reviewFormResponses', 'required', 'reviewer.submission.reviewFormResponse.form.responseRequired', function ($reviewFormResponses) use ($requiredReviewFormElementIds) {
             foreach ($requiredReviewFormElementIds as $requiredReviewFormElementId) {
                 if (!isset($reviewFormResponses[$requiredReviewFormElementId]) || $reviewFormResponses[$requiredReviewFormElementId] == '') {
                     return false;
@@ -41,8 +55,8 @@ class PKPReviewerReviewStep3Form extends ReviewerReviewForm
             return true;
         }));
 
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     /**
@@ -112,7 +126,6 @@ class PKPReviewerReviewStep3Form extends ReviewerReviewForm
         //
         // Assign the link actions
         //
-        import('lib.pkp.controllers.confirmationModal.linkAction.ViewReviewGuidelinesLinkAction');
         $viewReviewGuidelinesAction = new ViewReviewGuidelinesLinkAction($request, $reviewAssignment->getStageId());
         if ($viewReviewGuidelinesAction->getGuidelines()) {
             $templateMgr->assign('viewGuidelinesAction', $viewReviewGuidelinesAction);
@@ -153,7 +166,7 @@ class PKPReviewerReviewStep3Form extends ReviewerReviewForm
             $notificationMgr->createNotification(
                 Application::get()->getRequest(),
                 $userId,
-                NOTIFICATION_TYPE_REVIEWER_COMMENT,
+                PKPNotification::NOTIFICATION_TYPE_REVIEWER_COMMENT,
                 $submission->getContextId(),
                 ASSOC_TYPE_REVIEW_ASSIGNMENT,
                 $reviewAssignment->getId()
@@ -182,20 +195,17 @@ class PKPReviewerReviewStep3Form extends ReviewerReviewForm
             ASSOC_TYPE_REVIEW_ASSIGNMENT,
             $reviewAssignment->getId(),
             $reviewAssignment->getReviewerId(),
-            NOTIFICATION_TYPE_REVIEW_ASSIGNMENT
+            PKPNotification::NOTIFICATION_TYPE_REVIEW_ASSIGNMENT
         );
 
         // Add log
-        import('lib.pkp.classes.log.SubmissionLog');
-        import('classes.log.SubmissionEventLogEntry');
-
         $userDao = DAORegistry::getDAO('UserDAO'); /** @var UserDAO $userDao */
         $reviewer = $userDao->getById($reviewAssignment->getReviewerId());
         $request = Application::get()->getRequest();
         SubmissionLog::logEvent(
             $request,
             $submission,
-            SUBMISSION_LOG_REVIEW_READY,
+            SubmissionEventLogEntry::SUBMISSION_LOG_REVIEW_READY,
             'log.review.reviewReady',
             [
                 'reviewAssignmentId' => $reviewAssignment->getId(),
@@ -252,18 +262,18 @@ class PKPReviewerReviewStep3Form extends ReviewerReviewForm
                     $reviewFormElement = $reviewFormElementDao->getById($reviewFormElementId);
                     $elementType = $reviewFormElement->getElementType();
                     switch ($elementType) {
-                    case REVIEW_FORM_ELEMENT_TYPE_SMALL_TEXT_FIELD:
-                    case REVIEW_FORM_ELEMENT_TYPE_TEXT_FIELD:
-                    case REVIEW_FORM_ELEMENT_TYPE_TEXTAREA:
+                    case ReviewFormElement::REVIEW_FORM_ELEMENT_TYPE_SMALL_TEXT_FIELD:
+                    case ReviewFormElement::REVIEW_FORM_ELEMENT_TYPE_TEXT_FIELD:
+                    case ReviewFormElement::REVIEW_FORM_ELEMENT_TYPE_TEXTAREA:
                         $reviewFormResponse->setResponseType('string');
                         $reviewFormResponse->setValue($reviewFormResponseValue);
                         break;
-                    case REVIEW_FORM_ELEMENT_TYPE_RADIO_BUTTONS:
-                    case REVIEW_FORM_ELEMENT_TYPE_DROP_DOWN_BOX:
+                    case ReviewFormElement::REVIEW_FORM_ELEMENT_TYPE_RADIO_BUTTONS:
+                    case ReviewFormElement::REVIEW_FORM_ELEMENT_TYPE_DROP_DOWN_BOX:
                         $reviewFormResponse->setResponseType('int');
                         $reviewFormResponse->setValue($reviewFormResponseValue);
                         break;
-                    case REVIEW_FORM_ELEMENT_TYPE_CHECKBOXES:
+                    case ReviewFormElement::REVIEW_FORM_ELEMENT_TYPE_CHECKBOXES:
                         $reviewFormResponse->setResponseType('object');
                         $reviewFormResponse->setValue($reviewFormResponseValue);
                         break;
@@ -338,4 +348,8 @@ class PKPReviewerReviewStep3Form extends ReviewerReviewForm
             unset($comment);
         }
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\submission\reviewer\form\PKPReviewerReviewStep3Form', '\PKPReviewerReviewStep3Form');
 }

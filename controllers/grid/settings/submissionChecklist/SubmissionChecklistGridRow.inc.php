@@ -13,7 +13,10 @@
  * @brief Handle submissionChecklist grid row requests.
  */
 
-import('lib.pkp.classes.controllers.grid.GridRow');
+use PKP\controllers\grid\GridRow;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 
 class SubmissionChecklistGridRow extends GridRow
 {
@@ -38,7 +41,6 @@ class SubmissionChecklistGridRow extends GridRow
                 'rowId' => $rowId
             ];
 
-            import('lib.pkp.classes.linkAction.request.AjaxModal');
             $this->addAction(
                 new LinkAction(
                     'editSubmissionChecklist',
@@ -53,7 +55,6 @@ class SubmissionChecklistGridRow extends GridRow
                 )
             );
 
-            import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
             $this->addAction(
                 new LinkAction(
                     'deleteSubmissionChecklist',

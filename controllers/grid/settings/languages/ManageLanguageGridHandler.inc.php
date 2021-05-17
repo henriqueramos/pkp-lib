@@ -16,7 +16,11 @@
 import('lib.pkp.controllers.grid.languages.LanguageGridHandler');
 
 use APP\core\Services;
+use APP\notification\NotificationManager;
 use PKP\core\JSONMessage;
+
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\ContextAccessPolicy;
 
 class ManageLanguageGridHandler extends LanguageGridHandler
 {
@@ -41,7 +45,6 @@ class ManageLanguageGridHandler extends LanguageGridHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -111,7 +114,7 @@ class ManageLanguageGridHandler extends LanguageGridHandler
         $notificationManager = new NotificationManager();
         $notificationManager->createTrivialNotification(
             $request->getUser()->getId(),
-            NOTIFICATION_TYPE_SUCCESS,
+            PKPNotification::NOTIFICATION_TYPE_SUCCESS,
             ['contents' => __('notification.localeReloaded', ['locale' => $gridData[$locale]['name'], 'contextName' => $context->getLocalizedName()])]
         );
 

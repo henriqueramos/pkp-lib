@@ -13,9 +13,17 @@
  * @brief Abstract class for public identifiers plugins
  */
 
-import('lib.pkp.classes.plugins.Plugin');
+namespace PKP\plugins;
 
+use APP\core\Application;
+use APP\notification\NotificationManager;
 use PKP\core\JSONMessage;
+use PKP\db\DAORegistry;
+use PKP\db\SchemaDAO;
+use PKP\linkAction\LinkAction;
+
+use PKP\linkAction\request\AjaxModal;
+use PKP\notification\PKPNotification;
 
 abstract class PKPPubIdPlugin extends LazyLoadPlugin
 {
@@ -41,7 +49,8 @@ abstract class PKPPubIdPlugin extends LazyLoadPlugin
                     HookRegistry::register('Schema::get::' . $dao->schemaName, [$this, 'addToSchema']);
                 } else {
                     // For non-schema-backed DAOs, DAOName::getAdditionalFieldNames can be used.
-                    HookRegistry::register(strtolower_codesafe(get_class($dao)) . '::getAdditionalFieldNames', [$this, 'getAdditionalFieldNames']);
+                    $classNameParts = explode('\\', get_class($dao)); // Separate namespace info from class name
+                    HookRegistry::register(strtolower_codesafe(end($classNameParts)) . '::getAdditionalFieldNames', [$this, 'getAdditionalFieldNames']);
                 }
             }
         }
@@ -55,7 +64,6 @@ abstract class PKPPubIdPlugin extends LazyLoadPlugin
     public function getActions($request, $actionArgs)
     {
         $router = $request->getRouter();
-        import('lib.pkp.classes.linkAction.request.AjaxModal');
         return array_merge(
             $this->getEnabled() ? [
                 new LinkAction(
@@ -88,7 +96,7 @@ abstract class PKPPubIdPlugin extends LazyLoadPlugin
                 $form->readInputData();
                 if ($form->validate()) {
                     $form->execute();
-                    $notificationManager->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_SUCCESS);
+                    $notificationManager->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS);
                     return new JSONMessage(true);
                 }
                 return new JSONMessage(true, $form->fetch($request));
@@ -258,7 +266,11 @@ abstract class PKPPubIdPlugin extends LazyLoadPlugin
      */
     public function getPubObjectTypes()
     {
-        return ['Publication', 'Representation', 'SubmissionFile'];
+        return [
+            'Publication' => '\APP\publication\Publication',
+            'Representation' => '\PKP\submission\Representation',
+            'SubmissionFile' => '\PKP\submission\SubmissionFile',
+        ];
     }
 
     /**
@@ -422,9 +434,9 @@ abstract class PKPPubIdPlugin extends LazyLoadPlugin
     {
         $allowedTypes = $this->getPubObjectTypes();
         $pubObjectType = null;
-        foreach ($allowedTypes as $allowedType) {
-            if (is_a($pubObject, $allowedType)) {
-                $pubObjectType = $allowedType;
+        foreach ($allowedTypes as $type => $fqcn) {
+            if (is_a($pubObject, $fqcn)) {
+                $pubObjectType = $type;
                 break;
             }
         }
@@ -468,7 +480,7 @@ abstract class PKPPubIdPlugin extends LazyLoadPlugin
      */
     public function checkDuplicate($pubId, $pubObjectType, $excludeId, $contextId)
     {
-        foreach ($this->getPubObjectTypes() as $type) {
+        foreach ($this->getPubObjectTypes() as $type => $fqcn) {
             if ($type === 'Publication') {
                 $typeDao = DAORegistry::getDAO('PublicationDAO'); /** @var PublicationDAO $typeDao */
             } elseif ($type === 'Representation') {
@@ -508,4 +520,8 @@ abstract class PKPPubIdPlugin extends LazyLoadPlugin
         $contextDao = Application::getContextDAO();
         return $contextDao->getById($contextId);
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\plugins\PKPPubIdPlugin', '\PKPPubIdPlugin');
 }

@@ -13,29 +13,30 @@
  * @brief Helper class that encapsulates submission business logic
  */
 
-namespace PKP\Services;
+namespace PKP\services;
 
 use APP\core\Application;
 use APP\core\Services;
-use APP\Services\QueryBuilders\SubmissionQueryBuilder;
-
+use APP\services\queryBuilders\SubmissionQueryBuilder;
+use APP\submission\Submission;
 use PKP\core\Core;
 use PKP\db\DAORegistry;
 use PKP\db\DAOResultFactory;
 use PKP\db\DBResultRange;
-use PKP\Services\interfaces\EntityPropertyInterface;
-use PKP\Services\interfaces\EntityReadInterface;
+use PKP\services\interfaces\EntityPropertyInterface;
+use PKP\services\interfaces\EntityReadInterface;
+use PKP\services\interfaces\EntityWriteInterface;
 
-use PKP\Services\interfaces\EntityWriteInterface;
-use PKP\services\PKPSchemaService;
+use PKP\submission\PKPSubmission;
 use PKP\submission\SubmissionFile;
-
-define('STAGE_STATUS_SUBMISSION_UNASSIGNED', 1);
+use PKP\validation\ValidatorFactory;
 
 abstract class PKPSubmissionService implements EntityPropertyInterface, EntityReadInterface, EntityWriteInterface
 {
+    public const STAGE_STATUS_SUBMISSION_UNASSIGNED = 1;
+
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::get()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::get()
      */
     public function get($submissionId)
     {
@@ -53,7 +54,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
      */
     public function getByUrlPath($urlPath, $contextId)
     {
-        $qb = new \PKP\Services\QueryBuilders\PKPPublicationQueryBuilder();
+        $qb = new \PKP\services\queryBuilders\PKPPublicationQueryBuilder();
         $firstResult = $qb->getQueryByUrlPath($urlPath, $contextId)->first();
 
         if (!$firstResult) {
@@ -64,7 +65,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getCount()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getCount()
      */
     public function getCount($args = [])
     {
@@ -72,7 +73,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getIds()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getIds()
      */
     public function getIds($args = [])
     {
@@ -120,7 +121,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getMax()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getMax()
      */
     public function getMax($args = [])
     {
@@ -135,7 +136,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getQueryBuilder()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getQueryBuilder()
      *
      * @return SubmissionQueryBuilder
      */
@@ -183,7 +184,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getProperties()
      *
      * @param null|mixed $args
      */
@@ -282,7 +283,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getSummaryProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getSummaryProperties()
      *
      * @param null|mixed $args
      */
@@ -294,7 +295,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getFullProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getFullProperties()
      *
      * @param null|mixed $args
      */
@@ -486,7 +487,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
                     $stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO'); /** @var StageAssignmentDAO $stageAssignmentDao */
                     $assignedEditors = $stageAssignmentDao->editorAssignedToStage($submission->getId(), $stageId);
                     if (!$assignedEditors) {
-                        $stage['statusId'] = STAGE_STATUS_SUBMISSION_UNASSIGNED;
+                        $stage['statusId'] = self::STAGE_STATUS_SUBMISSION_UNASSIGNED;
                         $stage['status'] = __('submissions.queuedUnassigned');
                     }
 
@@ -498,7 +499,6 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
 
                 case WORKFLOW_STAGE_ID_INTERNAL_REVIEW:
                 case WORKFLOW_STAGE_ID_EXTERNAL_REVIEW:
-                    import('lib.pkp.classes.submission.reviewRound.ReviewRoundDAO');
                     $reviewRoundDao = DAORegistry::getDAO('ReviewRoundDAO'); /** @var ReviewRoundDAO $reviewRoundDao */
                     $reviewRound = $reviewRoundDao->getLastReviewRoundBySubmissionId($submission->getId(), $stageId);
                     if ($reviewRound) {
@@ -539,7 +539,6 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
                 // Review rounds are handled separately in the review stage below.
                 case WORKFLOW_STAGE_ID_EDITING:
                 case WORKFLOW_STAGE_ID_PRODUCTION:
-                    import('lib.pkp.classes.submission.SubmissionFile'); // Import constants
                     $stage['files'] = [
                         'count' => Services::get('submissionFile')->getCount([
                             'submissionIds' => [$submission->getId()],
@@ -669,7 +668,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
      */
     public function canCurrentUserDelete($submission)
     {
-        if (!is_a($submission, 'Submission')) {
+        if (!($submission instanceof Submission)) {
             $submission = $this->get((int) $submission);
             if (!$submission) {
                 return false;
@@ -726,26 +725,24 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
      */
     public function getReviewAssignments($submission)
     {
-        import('lib.pkp.classes.submission.reviewAssignment.ReviewAssignmentDAO');
         $reviewAssignmentDao = DAORegistry::getDAO('ReviewAssignmentDAO'); /** @var ReviewAssignmentDAO $reviewAssignmentDao */
         return $reviewAssignmentDao->getBySubmissionId($submission->getId());
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::validate()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::validate()
      */
     public function validate($action, $props, $allowedLocales, $primaryLocale)
     {
         $schemaService = Services::get('schema');
 
-        import('lib.pkp.classes.validation.ValidatorFactory');
-        $validator = \ValidatorFactory::make(
+        $validator = ValidatorFactory::make(
             $props,
             $schemaService->getValidationRules(PKPSchemaService::SCHEMA_SUBMISSION, $allowedLocales)
         );
 
         // Check required fields
-        \ValidatorFactory::required(
+        ValidatorFactory::required(
             $validator,
             $action,
             $schemaService->getRequiredProps(PKPSchemaService::SCHEMA_SUBMISSION),
@@ -755,7 +752,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
         );
 
         // Check for input from disallowed locales
-        \ValidatorFactory::allowedLocales($validator, $schemaService->getMultilingualProps(PKPSchemaService::SCHEMA_SUBMISSION), $allowedLocales);
+        ValidatorFactory::allowedLocales($validator, $schemaService->getMultilingualProps(PKPSchemaService::SCHEMA_SUBMISSION), $allowedLocales);
 
         // The contextId must match an existing context
         $validator->after(function ($validator) use ($props) {
@@ -777,7 +774,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::add()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::add()
      */
     public function add($submission, $request)
     {
@@ -796,7 +793,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::edit()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::edit()
      */
     public function edit($submission, $params, $request)
     {
@@ -816,7 +813,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::delete()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::delete()
      */
     public function delete($submission)
     {
@@ -902,7 +899,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
         // Get the new current publication after status changes or deletions
         // Use the latest published publication or, failing that, the latest publication
         $newCurrentPublicationId = array_reduce($publications, function ($a, $b) {
-            return $b->getData('status') === STATUS_PUBLISHED && $b->getId() > $a ? $b->getId() : $a;
+            return $b->getData('status') === PKPSubmission::STATUS_PUBLISHED && $b->getId() > $a ? $b->getId() : $a;
         }, 0);
         if (!$newCurrentPublicationId) {
             $newCurrentPublicationId = array_reduce($publications, function ($a, $b) {
@@ -912,15 +909,15 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
 
         // Declined submissions should remain declined even if their
         // publications change
-        if ($status !== STATUS_DECLINED) {
-            $newStatus = STATUS_QUEUED;
+        if ($status !== PKPSubmission::STATUS_DECLINED) {
+            $newStatus = PKPSubmission::STATUS_QUEUED;
             foreach ($publications as $publication) {
-                if ($publication->getData('status') === STATUS_PUBLISHED) {
-                    $newStatus = STATUS_PUBLISHED;
+                if ($publication->getData('status') === PKPSubmission::STATUS_PUBLISHED) {
+                    $newStatus = PKPSubmission::STATUS_PUBLISHED;
                     break;
                 }
-                if ($publication->getData('status') === STATUS_SCHEDULED) {
-                    $newStatus = STATUS_SCHEDULED;
+                if ($publication->getData('status') === PKPSubmission::STATUS_SCHEDULED) {
+                    $newStatus = PKPSubmission::STATUS_SCHEDULED;
                     continue;
                 }
             }

@@ -13,10 +13,9 @@
  * @brief Stage participant grid category row definition
  */
 
-import('lib.pkp.classes.controllers.grid.GridCategoryRow');
+use PKP\controllers\grid\GridCategoryRow;
 
 // Link actions
-import('lib.pkp.classes.linkAction.request.AjaxModal');
 
 class StageParticipantGridCategoryRow extends GridCategoryRow
 {

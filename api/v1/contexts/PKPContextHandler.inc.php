@@ -12,7 +12,11 @@
  * @brief Base class to handle API requests for contexts (journals/presses).
  */
 
-import('lib.pkp.classes.handler.APIHandler');
+use APP\template\TemplateManager;
+use PKP\handler\APIHandler;
+use PKP\security\authorization\PolicySet;
+use PKP\security\authorization\RoleBasedHandlerOperationPolicy;
+use PKP\services\interfaces\EntityWriteInterface;
 
 use PKP\services\PKPSchemaService;
 
@@ -81,10 +85,8 @@ class PKPContextHandler extends APIHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.PolicySet');
-        $rolePolicy = new PolicySet(COMBINING_PERMIT_OVERRIDES);
+        $rolePolicy = new PolicySet(PolicySet::COMBINING_PERMIT_OVERRIDES);
 
-        import('lib.pkp.classes.security.authorization.RoleBasedHandlerOperationPolicy');
         foreach ($roleAssignments as $role => $operations) {
             $rolePolicy->addPolicy(new RoleBasedHandlerOperationPolicy($request, $role, $operations));
         }
@@ -296,8 +298,19 @@ class PKPContextHandler extends APIHandler
 
         $primaryLocale = $site->getPrimaryLocale();
         $allowedLocales = $site->getSupportedLocales();
+
+        // If the site only supports a single locale, set the context's locales
+        if (count($allowedLocales) === 1) {
+            if (!isset($params['primaryLocale'])) {
+                $params['primaryLocale'] = $primaryLocale;
+            }
+            if (!isset($params['supportedLocales'])) {
+                $params['supportedLocales'] = $allowedLocales;
+            }
+        }
+
         $contextService = Services::get('context');
-        $errors = $contextService->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
+        $errors = $contextService->validate(EntityWriteInterface::VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
 
         if (!empty($errors)) {
             return $response->withStatus(400)->withJson($errors);
@@ -360,7 +373,7 @@ class PKPContextHandler extends APIHandler
         $primaryLocale = $context->getPrimaryLocale();
         $allowedLocales = $context->getSupportedFormLocales();
 
-        $errors = $contextService->validate(VALIDATE_ACTION_EDIT, $params, $allowedLocales, $primaryLocale);
+        $errors = $contextService->validate(EntityWriteInterface::VALIDATE_ACTION_EDIT, $params, $allowedLocales, $primaryLocale);
 
         if (!empty($errors)) {
             return $response->withStatus(400)->withJson($errors);
@@ -420,7 +433,7 @@ class PKPContextHandler extends APIHandler
         $themePluginPath = empty($params['themePluginPath']) ? null : $params['themePluginPath'];
         if ($themePluginPath !== $context->getData('themePluginPath')) {
             $errors = $contextService->validate(
-                VALIDATE_ACTION_EDIT,
+                EntityWriteInterface::VALIDATE_ACTION_EDIT,
                 ['themePluginPath' => $themePluginPath],
                 $context->getSupportedFormLocales(),
                 $context->getPrimaryLocale()

@@ -13,8 +13,11 @@
  * @brief Base class for a cell provider that can retrieve labels for queries.
  */
 
-import('lib.pkp.classes.controllers.grid.DataObjectGridCellProvider');
-
+use PKP\controllers\grid\DataObjectGridCellProvider;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxAction;
 use PKP\note\NoteDAO;
 
 class QueriesGridCellProvider extends DataObjectGridCellProvider
@@ -50,7 +53,7 @@ class QueriesGridCellProvider extends DataObjectGridCellProvider
      * Extracts variables for a given column from a data element
      * so that they may be assigned to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -93,11 +96,8 @@ class QueriesGridCellProvider extends DataObjectGridCellProvider
     /**
      * @copydoc GridCellProvider::getCellActions()
      */
-    public function getCellActions($request, $row, $column, $position = GRID_ACTION_POSITION_DEFAULT)
+    public function getCellActions($request, $row, $column, $position = GridHandler::GRID_ACTION_POSITION_DEFAULT)
     {
-        import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
-        import('lib.pkp.classes.linkAction.request.AjaxAction');
-
         $element = $row->getData();
         $router = $request->getRouter();
         $actionArgs = $this->getRequestArgs($row);
@@ -129,7 +129,7 @@ class QueriesGridCellProvider extends DataObjectGridCellProvider
     /**
      * Get request arguments.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      *
      * @return array
      */

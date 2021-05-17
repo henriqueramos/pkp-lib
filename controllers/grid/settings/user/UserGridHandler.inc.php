@@ -13,16 +13,22 @@
  * @brief Handle user grid requests.
  */
 
-import('lib.pkp.classes.controllers.grid.GridHandler');
-import('lib.pkp.classes.controllers.grid.DataObjectGridCellProvider');
-
 import('lib.pkp.controllers.grid.settings.user.UserGridRow');
 import('lib.pkp.controllers.grid.settings.user.form.UserDetailsForm');
 
+use APP\notification\NotificationManager;
 use APP\user\UserAction;
+use PKP\controllers\grid\DataObjectGridCellProvider;
+use PKP\controllers\grid\feature\PagingFeature;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 use PKP\core\JSONMessage;
 use PKP\identity\Identity;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\notification\PKPNotification;
 
+use PKP\security\authorization\ContextAccessPolicy;
 use PKP\user\UserDAO;
 
 class UserGridHandler extends GridHandler
@@ -54,7 +60,6 @@ class UserGridHandler extends GridHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -82,7 +87,6 @@ class UserGridHandler extends GridHandler
         // Grid actions.
         $router = $request->getRouter();
 
-        import('lib.pkp.classes.linkAction.request.AjaxModal');
         $this->addAction(
             new LinkAction(
                 'addUser',
@@ -166,7 +170,6 @@ class UserGridHandler extends GridHandler
      */
     public function initFeatures($request, $args)
     {
-        import('lib.pkp.classes.controllers.grid.feature.PagingFeature');
         return [new PagingFeature()];
     }
 
@@ -359,7 +362,7 @@ class UserGridHandler extends GridHandler
                 // Successful edit of an existing user.
                 $notificationManager = new NotificationManager();
                 $user = $request->getUser();
-                $notificationManager->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.editedUser')]);
+                $notificationManager->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.editedUser')]);
 
                 // Prepare the grid row data.
                 return \PKP\db\DAO::getDataChangedEvent($userId);

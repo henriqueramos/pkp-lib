@@ -19,10 +19,14 @@ namespace PKP\core;
 use APP\core\Application;
 use APP\core\Request;
 use APP\i18n\AppLocale;
+use APP\statistics\StatisticsHelper;
+
+use Exception;
 use PKP\config\Config;
 use PKP\db\DAORegistry;
 use PKP\plugins\PluginRegistry;
-use StatisticsHelper;
+
+use PKP\statistics\PKPStatisticsHelper;
 
 interface iPKPApplicationInfoProvider
 {
@@ -137,6 +141,8 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
             class_alias('\PKP\core\Registry', '\Registry');
             class_alias('\PKP\core\Core', '\Core');
             class_alias('\PKP\cache\CacheManager', '\CacheManager');
+            class_alias('\PKP\handler\PKPHandler', '\PKPHandler');
+            class_alias('\PKP\payment\QueuedPayment', '\QueuedPayment'); // QueuedPayment instances may be serialized
         }
 
         // If not in strict mode, globally expose constants on this class.
@@ -173,6 +179,7 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
                 'ASSOC_TYPE_QUEUED_PAYMENT',
                 'ASSOC_TYPE_PUBLICATION',
                 'ASSOC_TYPE_ACCESSIBLE_FILE_STAGES',
+                'ASSOC_TYPE_SUBMISSION_FILE_COUNTER_OTHER',
             ] as $constantName) {
                 if (!defined($constantName)) {
                     define($constantName, constant('self::' . $constantName));
@@ -195,8 +202,6 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
 
         import('lib.pkp.classes.security.RoleDAO');
         import('lib.pkp.classes.security.Validation');
-        import('classes.template.TemplateManager');
-        import('classes.notification.NotificationManager');
         import('lib.pkp.classes.statistics.PKPStatisticsHelper');
 
         PKPString::init();
@@ -633,7 +638,6 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
      */
     public function getMetrics($metricType = null, $columns = [], $filter = [], $orderBy = [], $range = null)
     {
-        import('classes.statistics.StatisticsHelper');
         $statsHelper = new StatisticsHelper();
 
         // Check the parameter format.
@@ -667,8 +671,8 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
         // 2) If we have multiple metrics then we have to force inclusion of
         // the metric type column to avoid aggregation over several metric types.
         if ($metricTypeCount > 1) {
-            if (!in_array(STATISTICS_DIMENSION_METRIC_TYPE, $columns)) {
-                array_push($columns, STATISTICS_DIMENSION_METRIC_TYPE);
+            if (!in_array(PKPStatisticsHelper::STATISTICS_DIMENSION_METRIC_TYPE, $columns)) {
+                array_push($columns, PKPStatisticsHelper::STATISTICS_DIMENSION_METRIC_TYPE);
             }
         }
 
@@ -725,20 +729,20 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
     public function getPrimaryMetricByAssoc($assocType, $assocId)
     {
         $filter = [
-            STATISTICS_DIMENSION_ASSOC_ID => $assocId,
-            STATISTICS_DIMENSION_ASSOC_TYPE => $assocType];
+            PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_ID => $assocId,
+            PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_TYPE => $assocType];
 
         $request = $this->getRequest();
         $router = $request->getRouter();
         $context = $router->getContext($request);
         if ($context) {
-            $filter[STATISTICS_DIMENSION_CONTEXT_ID] = $context->getId();
+            $filter[PKPStatisticsHelper::STATISTICS_DIMENSION_CONTEXT_ID] = $context->getId();
         }
 
         $metric = $this->getMetrics(null, [], $filter);
         if (is_array($metric)) {
-            if (!is_null($metric[0][STATISTICS_METRIC])) {
-                return $metric[0][STATISTICS_METRIC];
+            if (!is_null($metric[0][PKPStatisticsHelper::STATISTICS_METRIC])) {
+                return $metric[0][PKPStatisticsHelper::STATISTICS_METRIC];
             }
         }
 
@@ -944,9 +948,3 @@ define('WORKFLOW_STAGE_ID_PRODUCTION', 5);
 
 /* TextArea insert tag variable types used to change their display when selected */
 define('INSERT_TAG_VARIABLE_TYPE_PLAIN_TEXT', 'PLAIN_TEXT');
-
-// To expose LISTBUILDER_SOURCE_TYPE_... constants via JS
-import('lib.pkp.classes.controllers.listbuilder.ListbuilderHandler');
-
-// To expose ORDER_CATEGORY_GRID_... constants via JS
-import('lib.pkp.classes.controllers.grid.feature.OrderCategoryGridItemsFeature');

@@ -13,6 +13,9 @@
  * @brief Provide access to query files management.
  */
 
+use Exception;
+
+use PKP\security\authorization\QueryAccessPolicy;
 use PKP\submission\SubmissionFile;
 
 import('lib.pkp.controllers.grid.files.SubmissionFilesGridDataProvider');
@@ -43,7 +46,6 @@ class QueryNoteFilesGridDataProvider extends SubmissionFilesGridDataProvider
     {
         $this->setUploaderRoles($roleAssignments);
 
-        import('lib.pkp.classes.security.authorization.QueryAccessPolicy');
         return new QueryAccessPolicy($request, $args, $roleAssignments, $this->getStageId());
     }
 

@@ -15,6 +15,8 @@
 
 import('lib.pkp.controllers.grid.settings.user.form.UserForm');
 
+use APP\template\TemplateManager;
+
 class UserRoleForm extends UserForm
 {
     /** @var string User full name */
@@ -31,8 +33,8 @@ class UserRoleForm extends UserForm
         parent::__construct('controllers/grid/settings/user/form/userRoleForm.tpl', $userId);
 
         $this->_userFullName = $userFullName;
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     /**

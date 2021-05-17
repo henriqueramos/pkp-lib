@@ -13,11 +13,18 @@
  * @brief ReviewerAction class.
  */
 
+namespace PKP\submission\reviewer;
+
+use APP\log\SubmissionEventLogEntry;
+use APP\notification\NotificationManager;
+use PKP\core\Core;
+use PKP\db\DAORegistry;
 use PKP\log\SubmissionEmailLogEntry;
+use PKP\log\SubmissionLog;
 use PKP\mail\SubmissionMailTemplate;
 
-// Access decision actions constants.
-import('classes.workflow.EditorDecisionActionsManager');
+use PKP\notification\PKPNotification;
+use PKP\plugins\HookRegistry;
 
 class ReviewerAction
 {
@@ -64,9 +71,8 @@ class ReviewerAction
                 $email->setBody($emailText);
             }
             if (!$email->send($request)) {
-                import('classes.notification.NotificationManager');
                 $notificationMgr = new NotificationManager();
-                $notificationMgr->createTrivialNotification($request->getUser()->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
+                $notificationMgr->createTrivialNotification($request->getUser()->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
             }
 
             $reviewAssignment->setDateReminded(null);
@@ -77,13 +83,10 @@ class ReviewerAction
             $reviewAssignmentDao->updateObject($reviewAssignment);
 
             // Add log
-            import('lib.pkp.classes.log.SubmissionLog');
-            import('classes.log.SubmissionEventLogEntry');
-
             SubmissionLog::logEvent(
                 $request,
                 $submission,
-                $decline ? SUBMISSION_LOG_REVIEW_DECLINE : SUBMISSION_LOG_REVIEW_ACCEPT,
+                $decline ? SubmissionEventLogEntry::SUBMISSION_LOG_REVIEW_DECLINE : SubmissionEventLogEntry::SUBMISSION_LOG_REVIEW_ACCEPT,
                 $decline ? 'log.review.reviewDeclined' : 'log.review.reviewAccepted',
                 [
                     'reviewAssignmentId' => $reviewAssignment->getId(),
@@ -146,4 +149,8 @@ class ReviewerAction
 
         return $email;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\submission\reviewer\ReviewerAction', '\ReviewerAction');
 }

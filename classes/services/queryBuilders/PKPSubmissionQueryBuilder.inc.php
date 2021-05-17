@@ -13,13 +13,18 @@
  * @brief Submission list Query builder
  */
 
-namespace PKP\Services\QueryBuilders;
+namespace PKP\services\queryBuilders;
+
+use APP\i18n\AppLocale;
 
 use Illuminate\Support\Facades\DB as DB;
-
+use PKP\core\Core;
 use PKP\identity\Identity;
-use PKP\Services\QueryBuilders\Interfaces\EntityQueryBuilderInterface;
+use PKP\plugins\HookRegistry;
+use PKP\services\queryBuilders\interfaces\EntityQueryBuilderInterface;
 use PKP\submission\PKPSubmissionDAO;
+
+use PKP\submission\reviewRound\ReviewRound;
 
 abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
 {
@@ -70,7 +75,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      *
      * @param int|string $contextId
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function filterByContext($contextId)
     {
@@ -84,7 +89,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      * @param string $column
      * @param string $direction
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function orderBy($column, $direction = 'DESC')
     {
@@ -127,7 +132,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      *
      * @param int|array $statuses
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function filterByStatus($statuses)
     {
@@ -143,7 +148,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      *
      * @param int|array $stageIds
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function filterByStageIds($stageIds)
     {
@@ -159,7 +164,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      *
      * @param boolean $isIncomplete
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function filterByIncomplete($isIncomplete)
     {
@@ -172,7 +177,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      *
      * @param boolean $isOverdue
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function filterByOverdue($isOverdue)
     {
@@ -199,7 +204,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      * @param int|array $assignedTo List of assigned user ids or -1 to
      *   get submissions with no user assigned.
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function assignedTo($assignedTo)
     {
@@ -212,7 +217,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      *
      * @param string $phrase
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function searchPhrase($phrase)
     {
@@ -225,7 +230,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      *
      * @param int $count
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function limitTo($count)
     {
@@ -238,7 +243,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
      *
      * @param int $offset
      *
-     * @return \APP\Services\QueryBuilders\SubmissionQueryBuilder
+     * @return \APP\services\queryBuilders\SubmissionQueryBuilder
      */
     public function offsetBy($offset)
     {
@@ -247,7 +252,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
     }
 
     /**
-     * @copydoc PKP\Services\QueryBuilders\Interfaces\EntityQueryBuilderInterface::getCount()
+     * @copydoc PKP\services\queryBuilders\interfaces\EntityQueryBuilderInterface::getCount()
      */
     public function getCount()
     {
@@ -259,7 +264,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
     }
 
     /**
-     * @copydoc PKP\Services\QueryBuilders\Interfaces\EntityQueryBuilderInterface::getIds()
+     * @copydoc PKP\services\queryBuilders\interfaces\EntityQueryBuilderInterface::getIds()
      */
     public function getIds()
     {
@@ -271,7 +276,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
     }
 
     /**
-     * @copydoc PKP\Services\QueryBuilders\Interfaces\EntityQueryBuilderInterface::getQuery()
+     * @copydoc PKP\services\queryBuilders\interfaces\EntityQueryBuilderInterface::getQuery()
      */
     public function getQuery()
     {
@@ -291,7 +296,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
 
         // order by title
         if (is_object($this->orderColumn) && $this->orderColumn->getValue() === 'COALESCE(publication_tlps.setting_value, publication_tlpsl.setting_value)') {
-            $locale = \AppLocale::getLocale();
+            $locale = AppLocale::getLocale();
             $this->columns[] = DB::raw('COALESCE(publication_tlps.setting_value, publication_tlpsl.setting_value)');
             $q->leftJoin('publications as publication_tlp', 's.current_publication_id', '=', 'publication_tlp.publication_id')
                 ->leftJoin('publication_settings as publication_tlps', 'publication_tlp.publication_id', '=', 'publication_tlps.publication_id')
@@ -334,7 +339,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
 
         //inactive for X days
         if ($this->daysInactive) {
-            $q->where('s.date_last_activity', '<', \Core::getCurrentDate(strtotime('-' . $this->daysInactive . ' days')));
+            $q->where('s.date_last_activity', '<', Core::getCurrentDate(strtotime('-' . $this->daysInactive . ' days')));
         }
 
         // overdue submissions
@@ -345,20 +350,19 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
                     $table->on('raod.review_round_id', '=', 'rr.review_round_id');
                 });
             // Only get overdue assignments on active review rounds
-            import('lib.pkp.classes.submission.reviewRound.ReviewRound');
-            $q->where('rr.status', '!=', REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW);
-            $q->where('rr.status', '!=', REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL);
-            $q->where('rr.status', '!=', REVIEW_ROUND_STATUS_ACCEPTED);
-            $q->where('rr.status', '!=', REVIEW_ROUND_STATUS_DECLINED);
+            $q->where('rr.status', '!=', ReviewRound::REVIEW_ROUND_STATUS_RESUBMIT_FOR_REVIEW);
+            $q->where('rr.status', '!=', ReviewRound::REVIEW_ROUND_STATUS_SENT_TO_EXTERNAL);
+            $q->where('rr.status', '!=', ReviewRound::REVIEW_ROUND_STATUS_ACCEPTED);
+            $q->where('rr.status', '!=', ReviewRound::REVIEW_ROUND_STATUS_DECLINED);
             $q->where(function ($q) {
                 $q->where('raod.declined', '<>', 1);
                 $q->where('raod.cancelled', '<>', 1);
                 $q->where(function ($q) {
-                    $q->where('raod.date_due', '<', \Core::getCurrentDate(strtotime('tomorrow')));
+                    $q->where('raod.date_due', '<', Core::getCurrentDate(strtotime('tomorrow')));
                     $q->whereNull('raod.date_completed');
                 });
                 $q->orWhere(function ($q) {
-                    $q->where('raod.date_response_due', '<', \Core::getCurrentDate(strtotime('tomorrow')));
+                    $q->where('raod.date_response_due', '<', Core::getCurrentDate(strtotime('tomorrow')));
                     $q->whereNull('raod.date_confirmed');
                 });
             });
@@ -455,7 +459,7 @@ abstract class PKPSubmissionQueryBuilder implements EntityQueryBuilderInterface
         }
 
         // Add app-specific query statements
-        \HookRegistry::call('Submission::getMany::queryObject', [&$q, $this]);
+        HookRegistry::call('Submission::getMany::queryObject', [&$q, $this]);
 
         $q->select($this->columns);
 

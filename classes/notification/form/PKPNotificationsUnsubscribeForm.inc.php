@@ -16,8 +16,13 @@
  * @brief Form to unsubscribe from email notifications.
  */
 
+namespace PKP\notification\form;
 
-import('lib.pkp.classes.form.Form');
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+
+use PKP\db\DAORegistry;
+use PKP\form\Form;
 
 class PKPNotificationsUnsubscribeForm extends Form
 {
@@ -38,8 +43,8 @@ class PKPNotificationsUnsubscribeForm extends Form
         parent::__construct('notification/unsubscribeNotificationsForm.tpl');
 
         // Validation checks for this form
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
 
         $this->_notification = $notification;
         $this->_validationToken = $validationToken;
@@ -122,4 +127,8 @@ class PKPNotificationsUnsubscribeForm extends Form
 
         return true;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\notification\form\PKPNotificationsUnsubscribeForm', '\PKPNotificationsUnsubscribeForm');
 }

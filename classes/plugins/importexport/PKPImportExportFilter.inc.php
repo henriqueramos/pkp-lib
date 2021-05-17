@@ -13,7 +13,9 @@
  * @brief Base helper class for import/export filters
  */
 
-import('lib.pkp.classes.filter.PersistableFilter');
+use PKP\filter\PersistableFilter;
+
+// use NativeExportFilter; // FIXME: Add namespacing
 
 class PKPImportExportFilter extends PersistableFilter
 {
@@ -72,7 +74,7 @@ class PKPImportExportFilter extends PersistableFilter
         $currentFilter = array_shift($filters);
         $currentFilter->setDeployment($deployment);
 
-        if (is_a($currentFilter, 'NativeExportFilter')) {
+        if ($currentFilter instanceof NativeExportFilter) {
             $currentFilter->setOpts($opts);
         }
 

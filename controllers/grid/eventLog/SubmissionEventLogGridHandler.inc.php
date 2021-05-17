@@ -13,18 +13,16 @@
  * @brief Grid handler presenting the submission event log grid.
  */
 
-// import grid base classes
-import('lib.pkp.classes.controllers.grid.GridHandler');
-
-// Link action & modal classes
-import('lib.pkp.classes.linkAction.request.AjaxModal');
-
 // Other classes used by this grid
 import('lib.pkp.controllers.grid.eventLog.EventLogGridRow');
-import('lib.pkp.classes.controllers.grid.DateGridCellProvider');
 import('lib.pkp.controllers.grid.eventLog.EventLogGridCellProvider');
 
+use PKP\controllers\grid\DateGridCellProvider;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 use PKP\core\JSONMessage;
+use PKP\security\authorization\internal\UserAccessibleWorkflowStageRequiredPolicy;
+use PKP\security\authorization\SubmissionAccessPolicy;
 
 class SubmissionEventLogGridHandler extends GridHandler
 {
@@ -86,10 +84,8 @@ class SubmissionEventLogGridHandler extends GridHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.SubmissionAccessPolicy');
         $this->addPolicy(new SubmissionAccessPolicy($request, $args, $roleAssignments));
 
-        import('lib.pkp.classes.security.authorization.internal.UserAccessibleWorkflowStageRequiredPolicy');
         $this->addPolicy(new UserAccessibleWorkflowStageRequiredPolicy($request, PKPApplication::WORKFLOW_TYPE_EDITORIAL));
 
         $success = parent::authorize($request, $args, $roleAssignments);

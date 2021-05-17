@@ -13,7 +13,7 @@
  * @brief Wraps date formatting support around a provided DataProvider.
  */
 
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
+namespace PKP\controllers\grid;
 
 class DateGridCellProvider extends GridCellProvider
 {
@@ -43,7 +43,7 @@ class DateGridCellProvider extends GridCellProvider
      * Fetch a value from the provided DataProvider (in constructor)
      * and format it as a date.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -54,4 +54,8 @@ class DateGridCellProvider extends GridCellProvider
         $v['label'] = strftime($this->_format, strtotime($v['label']));
         return $v;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\grid\DateGridCellProvider', '\DateGridCellProvider');
 }

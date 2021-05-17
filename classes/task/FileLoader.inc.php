@@ -12,21 +12,29 @@
  *
  * @brief Base scheduled task class to reliably handle files processing.
  */
-import('lib.pkp.classes.scheduledTask.ScheduledTask');
 
-define('FILE_LOADER_RETURN_TO_STAGING', 0x01);
-define('FILE_LOADER_ERROR_MESSAGE_TYPE', 'common.error');
-define('FILE_LOADER_WARNING_MESSAGE_TYPE', 'common.warning');
+namespace PKP\task;
 
-define('FILE_LOADER_PATH_STAGING', 'stage');
-define('FILE_LOADER_PATH_PROCESSING', 'processing');
-define('FILE_LOADER_PATH_REJECT', 'reject');
-define('FILE_LOADER_PATH_ARCHIVE', 'archive');
-
+use APP\i18n\AppLocale;
+use PKP\config\Config;
+use PKP\db\DAORegistry;
+use PKP\file\FileManager;
 use PKP\mail\Mail;
+use PKP\scheduledTask\ScheduledTask;
+
+use PKP\scheduledTask\ScheduledTaskHelper;
 
 abstract class FileLoader extends ScheduledTask
 {
+    public const FILE_LOADER_RETURN_TO_STAGING = 0x01;
+    public const FILE_LOADER_ERROR_MESSAGE_TYPE = 'common.error';
+    public const FILE_LOADER_WARNING_MESSAGE_TYPE = 'common.warning';
+
+    public const FILE_LOADER_PATH_STAGING = 'stage';
+    public const FILE_LOADER_PATH_PROCESSING = 'processing';
+    public const FILE_LOADER_PATH_REJECT = 'reject';
+    public const FILE_LOADER_PATH_ARCHIVE = 'archive';
+
     /** @var string The current claimed filename that the script is working on. */
     private $_claimedFilename;
 
@@ -187,7 +195,7 @@ abstract class FileLoader extends ScheduledTask
             } catch (Exception $e) {
                 $foundErrors = true;
                 $this->_rejectFile();
-                $this->addExecutionLogEntry($e->getMessage(), SCHEDULED_TASK_MESSAGE_TYPE_ERROR);
+                $this->addExecutionLogEntry($e->getMessage(), ScheduledTaskHelper::SCHEDULED_TASK_MESSAGE_TYPE_ERROR);
                 continue;
             }
 
@@ -205,7 +213,7 @@ abstract class FileLoader extends ScheduledTask
                 $this->addExecutionLogEntry(__(
                     'admin.fileLoader.fileProcessed',
                     ['filename' => $filePath]
-                ), SCHEDULED_TASK_MESSAGE_TYPE_NOTICE);
+                ), ScheduledTaskHelper::SCHEDULED_TASK_MESSAGE_TYPE_NOTICE);
             }
         }
         return !$foundErrors;
@@ -230,7 +238,7 @@ abstract class FileLoader extends ScheduledTask
         if (is_null($this->_basePath) || strpos($this->_basePath, $filesDir) !== 0) {
             $this->addExecutionLogEntry(
                 __('admin.fileLoader.wrongBasePathLocation', ['path' => $this->_basePath]),
-                SCHEDULED_TASK_MESSAGE_TYPE_ERROR
+                ScheduledTaskHelper::SCHEDULED_TASK_MESSAGE_TYPE_ERROR
             );
             return false;
         }
@@ -248,7 +256,6 @@ abstract class FileLoader extends ScheduledTask
                 if ($install) {
                     // Try installing the folder if it is missing.
                     if (is_null($fileManager)) {
-                        import('lib.pkp.classes.file.FileManager');
                         $fileManager = new FileManager();
                     }
                     $fileManager->mkdirtree($path);
@@ -259,7 +266,7 @@ abstract class FileLoader extends ScheduledTask
                     // Give up...
                     $this->addExecutionLogEntry(
                         __('admin.fileLoader.pathNotAccessible', ['path' => $path]),
-                        SCHEDULED_TASK_MESSAGE_TYPE_ERROR
+                        ScheduledTaskHelper::SCHEDULED_TASK_MESSAGE_TYPE_ERROR
                     );
                     return false;
                 }
@@ -299,7 +306,7 @@ abstract class FileLoader extends ScheduledTask
         if (!rename($currentFilePath, $destinationPath)) {
             $message = __('admin.fileLoader.moveFileFailed', ['filename' => $filename,
                 'currentFilePath' => $currentFilePath, 'destinationPath' => $destinationPath]);
-            $this->addExecutionLogEntry($message, SCHEDULED_TASK_MESSAGE_TYPE_ERROR);
+            $this->addExecutionLogEntry($message, ScheduledTaskHelper::SCHEDULED_TASK_MESSAGE_TYPE_ERROR);
 
             // Script shoudl always stop if it can't manipulate files inside
             // its own directory system.
@@ -340,7 +347,7 @@ abstract class FileLoader extends ScheduledTask
                 $filename = pathinfo($processingFilePath, PATHINFO_BASENAME);
             } catch (Exception $e) {
                 $this->moveFile($this->_processingPath, $this->_stagePath, $filename);
-                $this->addExecutionLogEntry($e->getMessage(), SCHEDULED_TASK_MESSAGE_TYPE_ERROR);
+                $this->addExecutionLogEntry($e->getMessage(), ScheduledTaskHelper::SCHEDULED_TASK_MESSAGE_TYPE_ERROR);
                 return false;
             }
         }
@@ -373,7 +380,7 @@ abstract class FileLoader extends ScheduledTask
                 $filePath = $this->_archivePath . DIRECTORY_SEPARATOR . $this->_claimedFilename;
                 $fileMgr->compressFile($filePath);
             } catch (Exception $e) {
-                $this->addExecutionLogEntry($e->getMessage(), SCHEDULED_TASK_MESSAGE_TYPE_ERROR);
+                $this->addExecutionLogEntry($e->getMessage(), ScheduledTaskHelper::SCHEDULED_TASK_MESSAGE_TYPE_ERROR);
             }
         }
     }
@@ -405,5 +412,20 @@ abstract class FileLoader extends ScheduledTask
         $mail->setBody($message);
 
         $mail->send();
+    }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\task\FileLoader', '\FileLoader');
+    foreach ([
+        'FILE_LOADER_RETURN_TO_STAGING',
+        'FILE_LOADER_ERROR_MESSAGE_TYPE',
+        'FILE_LOADER_WARNING_MESSAGE_TYPE',
+        'FILE_LOADER_PATH_STAGING',
+        'FILE_LOADER_PATH_PROCESSING',
+        'FILE_LOADER_PATH_REJECT',
+        'FILE_LOADER_PATH_ARCHIVE',
+    ] as $constantName) {
+        define($constantName, constant('\FileLoader::' . $constantName));
     }
 }

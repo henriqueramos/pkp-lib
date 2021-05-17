@@ -15,7 +15,12 @@
  *
  */
 
-import('lib.pkp.classes.controllers.grid.feature.GeneralPagingFeature');
+namespace PKP\controllers\grid\feature;
+
+use APP\template\TemplateManager;
+use PKP\linkAction\LinkAction;
+
+use PKP\linkAction\request\NullAction;
 
 class InfiniteScrollingFeature extends GeneralPagingFeature
 {
@@ -56,7 +61,6 @@ class InfiniteScrollingFeature extends GeneralPagingFeature
 
         $moreItemsLinkAction = false;
         if ($shown < $options['itemsTotal']) {
-            import('lib.pkp.classes.linkAction.request.NullAction');
             $moreItemsLinkAction = new LinkAction(
                 'moreItems',
                 new NullAction(),
@@ -150,4 +154,8 @@ class InfiniteScrollingFeature extends GeneralPagingFeature
             )
         );
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\grid\feature\InfiniteScrollingFeature', '\InfiniteScrollingFeature');
 }

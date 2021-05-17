@@ -12,8 +12,11 @@
  * @brief Base class to handle API requests for contexts (journals/presses).
  */
 
-import('lib.pkp.classes.handler.APIHandler');
-
+use PKP\handler\APIHandler;
+use PKP\security\authorization\ContextRequiredPolicy;
+use PKP\security\authorization\PolicySet;
+use PKP\security\authorization\RoleBasedHandlerOperationPolicy;
+use PKP\services\interfaces\EntityWriteInterface;
 use PKP\services\PKPSchemaService;
 
 class PKPEmailTemplateHandler extends APIHandler
@@ -73,14 +76,11 @@ class PKPEmailTemplateHandler extends APIHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.PolicySet');
-        $rolePolicy = new PolicySet(COMBINING_PERMIT_OVERRIDES);
+        $rolePolicy = new PolicySet(PolicySet::COMBINING_PERMIT_OVERRIDES);
 
         // This endpoint is not available at the site-wide level
-        import('lib.pkp.classes.security.authorization.ContextRequiredPolicy');
         $this->addPolicy(new ContextRequiredPolicy($request));
 
-        import('lib.pkp.classes.security.authorization.RoleBasedHandlerOperationPolicy');
         foreach ($roleAssignments as $role => $operations) {
             $rolePolicy->addPolicy(new RoleBasedHandlerOperationPolicy($request, $role, $operations));
         }
@@ -201,7 +201,7 @@ class PKPEmailTemplateHandler extends APIHandler
 
         $primaryLocale = $requestContext->getData('primaryLocale');
         $allowedLocales = $requestContext->getData('supportedFormLocales');
-        $errors = Services::get('emailTemplate')->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
+        $errors = Services::get('emailTemplate')->validate(EntityWriteInterface::VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
 
         if (!empty($errors)) {
             return $response->withStatus(400)->withJson($errors);
@@ -255,7 +255,7 @@ class PKPEmailTemplateHandler extends APIHandler
         }
 
         $errors = Services::get('emailTemplate')->validate(
-            VALIDATE_ACTION_EDIT,
+            EntityWriteInterface::VALIDATE_ACTION_EDIT,
             $params,
             $requestContext->getData('supportedFormLocales'),
             $requestContext->getData('primaryLocale')

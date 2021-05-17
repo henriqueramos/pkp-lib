@@ -13,7 +13,11 @@
  * @brief Cell provider for columns in a user group grid.
  */
 
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
+use PKP\controllers\grid\GridCellProvider;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxAction;
 
 class UserGroupGridCellProvider extends GridCellProvider
 {
@@ -21,7 +25,7 @@ class UserGroupGridCellProvider extends GridCellProvider
      * Extracts variables for a given column from a data element
      * so that they may be assigned to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -62,7 +66,7 @@ class UserGroupGridCellProvider extends GridCellProvider
     /**
      * @copydoc GridCellProvider::getCellActions()
      */
-    public function getCellActions($request, $row, $column, $position = GRID_ACTION_POSITION_DEFAULT)
+    public function getCellActions($request, $row, $column, $position = GridHandler::GRID_ACTION_POSITION_DEFAULT)
     {
         $workflowStages = Application::getApplicationStages();
         $columnId = $column->getId();
@@ -89,7 +93,6 @@ class UserGroupGridCellProvider extends GridCellProvider
                 );
 
                 $actionUrl = $router->url($request, null, null, $operation, null, $actionArgs);
-                import('lib.pkp.classes.linkAction.request.AjaxAction');
                 $actionRequest = new AjaxAction($actionUrl);
 
                 $linkAction = new LinkAction(

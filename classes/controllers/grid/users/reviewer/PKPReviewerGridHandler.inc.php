@@ -13,25 +13,44 @@
  * @brief Handle reviewer grid requests.
  */
 
-// import grid base classes
-import('lib.pkp.classes.controllers.grid.GridHandler');
+namespace PKP\controllers\grid\users\reviewer;
 
-// import reviewer grid specific classes
+// FIXME: Add namespacing
 import('lib.pkp.controllers.grid.users.reviewer.ReviewerGridCellProvider');
+use APP\core\Application;
+
 import('lib.pkp.controllers.grid.users.reviewer.ReviewerGridRow');
-
-// Reviewer selection types
-define('REVIEWER_SELECT_ADVANCED_SEARCH', 0x00000001);
-define('REVIEWER_SELECT_CREATE', 0x00000002);
-define('REVIEWER_SELECT_ENROLL_EXISTING', 0x00000003);
-
 use APP\core\Services;
-use PKP\core\JSONMessage;
 
+use APP\i18n\AppLocale;
+use APP\log\SubmissionEventLogEntry;
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+use PKP\core\Core;
+use PKP\core\JSONMessage;
+use PKP\core\PKPApplication;
+use PKP\db\DAORegistry;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\log\SubmissionLog;
 use PKP\mail\SubmissionMailTemplate;
+
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\internal\ReviewAssignmentRequiredPolicy;
+use PKP\security\authorization\internal\ReviewRoundRequiredPolicy;
+use PKP\security\authorization\WorkflowStageAccessPolicy;
+use ReviewerGridCellProvider;
+use ReviewerGridRow;
 
 class PKPReviewerGridHandler extends GridHandler
 {
+    // Reviewer selection types
+    public const REVIEWER_SELECT_ADVANCED_SEARCH = 1;
+    public const REVIEWER_SELECT_CREATE = 2;
+    public const REVIEWER_SELECT_ENROLL_EXISTING = 3;
+
     /** @var Submission */
     public $_submission;
 
@@ -83,15 +102,12 @@ class PKPReviewerGridHandler extends GridHandler
             $this->_stageId = (int)$stageId;
 
             // Get the stage access policy
-            import('lib.pkp.classes.security.authorization.WorkflowStageAccessPolicy');
             $workflowStageAccessPolicy = new WorkflowStageAccessPolicy($request, $args, $roleAssignments, 'submissionId', $stageId, PKPApplication::WORKFLOW_TYPE_EDITORIAL);
 
             // Add policy to ensure there is a review round id.
-            import('lib.pkp.classes.security.authorization.internal.ReviewRoundRequiredPolicy');
             $workflowStageAccessPolicy->addPolicy(new ReviewRoundRequiredPolicy($request, $args, 'reviewRoundId', $this->_getReviewRoundOps()));
 
             // Add policy to ensure there is a review assignment for certain operations.
-            import('lib.pkp.classes.security.authorization.internal.ReviewAssignmentRequiredPolicy');
             $workflowStageAccessPolicy->addPolicy(new ReviewAssignmentRequiredPolicy($request, $args, 'reviewAssignmentId', $this->_getReviewAssignmentOps()));
             $this->addPolicy($workflowStageAccessPolicy);
 
@@ -199,9 +215,8 @@ class PKPReviewerGridHandler extends GridHandler
 
         // Grid actions
         if (!$this->_isCurrentUserAssignedAuthor) {
-            import('lib.pkp.classes.linkAction.request.AjaxModal');
             $router = $request->getRouter();
-            $actionArgs = array_merge($this->getRequestArgs(), ['selectionType' => REVIEWER_SELECT_ADVANCED_SEARCH]);
+            $actionArgs = array_merge($this->getRequestArgs(), ['selectionType' => self::REVIEWER_SELECT_ADVANCED_SEARCH]);
             $this->addAction(
                 new LinkAction(
                     'addReviewer',
@@ -572,19 +587,10 @@ class PKPReviewerGridHandler extends GridHandler
         $reviewAssignmentDao->updateObject($reviewAssignment);
 
         // log the unconsider.
-        import('lib.pkp.classes.log.SubmissionLog');
-        import('classes.log.SubmissionEventLogEntry');
-
-        $entry = new SubmissionEventLogEntry();
-        $entry->setSubmissionId($reviewAssignment->getSubmissionId());
-        $entry->setUserId($user->getId());
-        $entry->setDateLogged(Core::getCurrentDate());
-        $entry->setEventType(SUBMISSION_LOG_REVIEW_UNCONSIDERED);
-
         SubmissionLog::logEvent(
             $request,
             $submission,
-            SUBMISSION_LOG_REVIEW_UNCONSIDERED,
+            SubmissionEventLogEntry::SUBMISSION_LOG_REVIEW_UNCONSIDERED,
             'log.review.reviewUnconsidered',
             [
                 'editorName' => $user->getFullName(),
@@ -641,9 +647,6 @@ class PKPReviewerGridHandler extends GridHandler
 
         //if the review was read by an editor, log event
         if ($reviewAssignment->isRead()) {
-            import('lib.pkp.classes.log.SubmissionLog');
-            import('classes.log.SubmissionEventLogEntry');
-
             $submissionId = $reviewAssignment->getSubmissionId();
             $submissionDao = DAORegistry::getDAO('SubmissionDAO'); /** @var SubmissionDAO $submissionDao */
             $submission = $submissionDao->getById($submissionId);
@@ -651,7 +654,7 @@ class PKPReviewerGridHandler extends GridHandler
             SubmissionLog::logEvent(
                 $request,
                 $submission,
-                SUBMISSION_LOG_REVIEW_CONFIRMED,
+                SubmissionEventLogEntry::SUBMISSION_LOG_REVIEW_CONFIRMED,
                 'log.review.reviewConfirmed',
                 [
                     'userName' => $user->getFullName(),
@@ -666,7 +669,7 @@ class PKPReviewerGridHandler extends GridHandler
             ASSOC_TYPE_REVIEW_ASSIGNMENT,
             $reviewAssignment->getId(),
             $reviewAssignment->getReviewerId(),
-            NOTIFICATION_TYPE_REVIEW_ASSIGNMENT
+            PKPNotification::NOTIFICATION_TYPE_REVIEW_ASSIGNMENT
         );
 
         return \PKP\db\DAO::getDataChangedEvent($reviewAssignment->getId());
@@ -776,7 +779,7 @@ class PKPReviewerGridHandler extends GridHandler
             $currentUser = $request->getUser();
             $notificationMgr = new NotificationManager();
             $messageKey = $thankReviewerForm->getData('skipEmail') ? __('notification.reviewAcknowledged') : __('notification.reviewerThankedEmail');
-            $notificationMgr->createTrivialNotification($currentUser->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => $messageKey]);
+            $notificationMgr->createTrivialNotification($currentUser->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => $messageKey]);
         } else {
             $json = new JSONMessage(false, __('editor.review.thankReviewerError'));
         }
@@ -827,7 +830,7 @@ class PKPReviewerGridHandler extends GridHandler
             // Insert a trivial notification to indicate the reviewer was reminded successfully.
             $currentUser = $request->getUser();
             $notificationMgr = new NotificationManager();
-            $notificationMgr->createTrivialNotification($currentUser->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.sentNotification')]);
+            $notificationMgr->createTrivialNotification($currentUser->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.sentNotification')]);
             return new JSONMessage(true);
         } else {
             return new JSONMessage(false, __('editor.review.reminderError'));
@@ -1007,11 +1010,11 @@ class PKPReviewerGridHandler extends GridHandler
     public function _getReviewerFormClassName($selectionType)
     {
         switch ($selectionType) {
-            case REVIEWER_SELECT_ADVANCED_SEARCH:
+            case self::REVIEWER_SELECT_ADVANCED_SEARCH:
                 return 'AdvancedSearchReviewerForm';
-            case REVIEWER_SELECT_CREATE:
+            case self::REVIEWER_SELECT_CREATE:
                 return 'CreateReviewerForm';
-            case REVIEWER_SELECT_ENROLL_EXISTING:
+            case self::REVIEWER_SELECT_ENROLL_EXISTING:
                 return 'EnrollExistingReviewerForm';
         }
         assert(false);
@@ -1086,5 +1089,16 @@ class PKPReviewerGridHandler extends GridHandler
             'sendEmail',
             'gossip',
         ];
+    }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\grid\users\reviewer\PKPReviewerGridHandler', '\PKPReviewerGridHandler');
+    foreach ([
+        'REVIEWER_SELECT_ADVANCED_SEARCH',
+        'REVIEWER_SELECT_CREATE',
+        'REVIEWER_SELECT_ENROLL_EXISTING',
+    ] as $constantName) {
+        define($constantName, constant('\PKPReviewerGridHandler::' . $constantName));
     }
 }

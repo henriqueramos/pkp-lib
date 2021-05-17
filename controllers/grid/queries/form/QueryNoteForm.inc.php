@@ -13,7 +13,12 @@
  * @brief Form for adding/editing a new query note.
  */
 
-import('lib.pkp.classes.form.Form');
+use APP\notification\Notification;
+use APP\notification\NotificationManager;
+
+use APP\template\TemplateManager;
+use PKP\form\Form;
+use PKP\notification\PKPNotification;
 
 class QueryNoteForm extends Form
 {
@@ -59,9 +64,9 @@ class QueryNoteForm extends Form
         }
 
         // Validation checks for this form
-        $this->addCheck(new FormValidator($this, 'comment', 'required', 'submission.queries.messageRequired'));
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'comment', 'required', 'submission.queries.messageRequired'));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     //
@@ -159,7 +164,7 @@ class QueryNoteForm extends Form
                 ASSOC_TYPE_QUERY,
                 $query->getId(),
                 $userId,
-                NOTIFICATION_TYPE_QUERY_ACTIVITY,
+                PKPNotification::NOTIFICATION_TYPE_QUERY_ACTIVITY,
                 $request->getContext()->getId()
             );
 
@@ -172,11 +177,11 @@ class QueryNoteForm extends Form
             $notificationManager->createNotification(
                 $request,
                 $userId,
-                NOTIFICATION_TYPE_QUERY_ACTIVITY,
+                PKPNotification::NOTIFICATION_TYPE_QUERY_ACTIVITY,
                 $request->getContext()->getId(),
                 ASSOC_TYPE_QUERY,
                 $query->getId(),
-                NOTIFICATION_LEVEL_TASK
+                Notification::NOTIFICATION_LEVEL_TASK
             );
         }
 

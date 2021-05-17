@@ -13,8 +13,10 @@
  * @brief Form for adding/editing a file
  */
 
-import('lib.pkp.classes.form.Form');
-import('classes.file.LibraryFileManager');
+use APP\file\LibraryFileManager;
+
+use APP\template\TemplateManager;
+use PKP\form\Form;
 
 class LibraryFileForm extends Form
 {
@@ -37,8 +39,8 @@ class LibraryFileForm extends Form
         parent::__construct($template);
         $this->libraryFileManager = $libraryFileManager = new LibraryFileManager($contextId);
 
-        $this->addCheck(new FormValidatorLocale($this, 'libraryFileName', 'required', 'settings.libraryFiles.nameRequired'));
-        $this->addCheck(new FormValidatorCustom(
+        $this->addCheck(new \PKP\form\validation\FormValidatorLocale($this, 'libraryFileName', 'required', 'settings.libraryFiles.nameRequired'));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCustom(
             $this,
             'fileType',
             'required',
@@ -48,8 +50,8 @@ class LibraryFileForm extends Form
             }
         ));
 
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     /**

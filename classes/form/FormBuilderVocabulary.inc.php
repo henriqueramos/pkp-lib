@@ -54,6 +54,10 @@
  *   required: Adds an asterisk and a .required class to the element's label
  */
 
+namespace PKP\form;
+
+use Exception;
+
 class FormBuilderVocabulary
 {
     /** Form associated with this object, if any.  Will inform smarty which forms to label as required **/
@@ -960,4 +964,8 @@ class FormBuilderVocabulary
         }
         return $returner;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\form\FormBuilderVocabulary', '\FormBuilderVocabulary');
 }

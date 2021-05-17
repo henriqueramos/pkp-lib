@@ -15,8 +15,9 @@
  * @brief Form validation check for email addresses.
  */
 
-import('lib.pkp.classes.form.validation.FormValidatorLocale');
-import('lib.pkp.classes.validation.ValidatorEmail');
+namespace PKP\form\validation;
+
+use PKP\validation\ValidatorEmail;
 
 class FormValidatorLocaleEmail extends FormValidatorLocale
 {
@@ -34,4 +35,8 @@ class FormValidatorLocaleEmail extends FormValidatorLocale
         $validator = new ValidatorEmail();
         parent::__construct($form, $field, $type, $message, $requiredLocale, $validator);
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\form\validation\FormValidatorLocaleEmail', '\FormValidatorLocaleEmail');
 }

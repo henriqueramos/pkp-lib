@@ -14,7 +14,9 @@
  * support lazy load.
  */
 
-import('lib.pkp.classes.plugins.Plugin');
+namespace PKP\plugins;
+
+use APP\core\Application;
 
 abstract class LazyLoadPlugin extends Plugin
 {
@@ -48,7 +50,8 @@ abstract class LazyLoadPlugin extends Plugin
         // as plug-in name. Legacy plug-ins will override this method so
         // this implementation is backwards compatible.
         // NB: strtolower was required for PHP4 compatibility.
-        return strtolower_codesafe(get_class($this));
+        $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+        return strtolower_codesafe(end($classNameParts));
     }
 
 
@@ -116,4 +119,8 @@ abstract class LazyLoadPlugin extends Plugin
         $context = Application::get()->getRequest()->getContext();
         return is_null($context) ? 0 : $context->getId();
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\plugins\LazyLoadPlugin', '\LazyLoadPlugin');
 }

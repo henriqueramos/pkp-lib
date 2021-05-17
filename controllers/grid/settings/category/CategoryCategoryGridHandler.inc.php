@@ -13,17 +13,18 @@
  * @brief Handle operations for category management operations.
  */
 
-// Import the base GridHandler.
-import('lib.pkp.classes.controllers.grid.CategoryGridHandler');
-import('lib.pkp.classes.controllers.grid.DataObjectGridCellProvider');
-
 // Import user group grid specific classes
 import('lib.pkp.controllers.grid.settings.category.CategoryGridCategoryRow');
 
-// Link action & modal classes
-import('lib.pkp.classes.linkAction.request.AjaxModal');
-
+use PKP\controllers\grid\CategoryGridHandler;
+use PKP\controllers\grid\DataObjectGridCellProvider;
+use PKP\controllers\grid\feature\OrderCategoryGridItemsFeature;
+use PKP\controllers\grid\GridColumn;
 use PKP\core\JSONMessage;
+use PKP\file\TemporaryFileManager;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\security\authorization\ContextAccessPolicy;
 
 class CategoryCategoryGridHandler extends CategoryGridHandler
 {
@@ -59,7 +60,6 @@ class CategoryCategoryGridHandler extends CategoryGridHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -128,10 +128,9 @@ class CategoryCategoryGridHandler extends CategoryGridHandler
      */
     public function initFeatures($request, $args)
     {
-        import('lib.pkp.classes.controllers.grid.feature.OrderCategoryGridItemsFeature');
         return array_merge(
             parent::initFeatures($request, $args),
-            [new OrderCategoryGridItemsFeature(ORDER_CATEGORY_GRID_CATEGORIES_AND_ROWS, true, $this)]
+            [new OrderCategoryGridItemsFeature(OrderCategoryGridItemsFeature::ORDER_CATEGORY_GRID_CATEGORIES_AND_ROWS, true, $this)]
         );
     }
 
@@ -295,7 +294,6 @@ class CategoryCategoryGridHandler extends CategoryGridHandler
     {
         $user = $request->getUser();
 
-        import('lib.pkp.classes.file.TemporaryFileManager');
         $temporaryFileManager = new TemporaryFileManager();
         $temporaryFile = $temporaryFileManager->handleUpload('uploadedFile', $user->getId());
         if ($temporaryFile) {

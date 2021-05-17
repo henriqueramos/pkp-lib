@@ -13,8 +13,18 @@
  * @brief Form for Step 1 of author submission: terms, conditions, etc.
  */
 
-import('lib.pkp.classes.submission.form.SubmissionSubmitForm');
-import('classes.publication.Publication');
+namespace PKP\submission\form;
+
+use APP\core\Application;
+use APP\core\Services;
+use APP\i18n\AppLocale;
+use APP\publication\Publication;
+
+use APP\template\TemplateManager;
+use PKP\config\Config;
+use PKP\core\Core;
+use PKP\db\DAORegistry;
+use PKP\submission\PKPSubmission;
 
 class PKPSubmissionSubmitStep1Form extends SubmissionSubmitForm
 {
@@ -43,17 +53,17 @@ class PKPSubmissionSubmitStep1Form extends SubmissionSubmitForm
         if (!is_array($supportedSubmissionLocales) || count($supportedSubmissionLocales) < 1) {
             $supportedSubmissionLocales = [$context->getPrimaryLocale()];
         }
-        $this->addCheck(new FormValidatorInSet($this, 'locale', 'required', 'submission.submit.form.localeRequired', $supportedSubmissionLocales));
+        $this->addCheck(new \PKP\form\validation\FormValidatorInSet($this, 'locale', 'required', 'submission.submit.form.localeRequired', $supportedSubmissionLocales));
         if ((bool) $context->getData('copyrightNotice')) {
-            $this->addCheck(new FormValidator($this, 'copyrightNoticeAgree', 'required', 'submission.submit.copyrightNoticeAgreeRequired'));
+            $this->addCheck(new \PKP\form\validation\FormValidator($this, 'copyrightNoticeAgree', 'required', 'submission.submit.copyrightNoticeAgreeRequired'));
         }
-        $this->addCheck(new FormValidator($this, 'userGroupId', 'required', 'submission.submit.availableUserGroupsDescription'));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'userGroupId', 'required', 'submission.submit.availableUserGroupsDescription'));
         if ($this->hasPrivacyStatement) {
-            $this->addCheck(new FormValidator($this, 'privacyConsent', 'required', 'user.profile.form.privacyConsentRequired'));
+            $this->addCheck(new \PKP\form\validation\FormValidator($this, 'privacyConsent', 'required', 'user.profile.form.privacyConsentRequired'));
         }
 
         foreach ((array) $context->getLocalizedData('submissionChecklist') as $key => $checklistItem) {
-            $this->addCheck(new FormValidator($this, "checklist-${key}", 'required', 'submission.submit.checklistErrors'));
+            $this->addCheck(new \PKP\form\validation\FormValidator($this, "checklist-${key}", 'required', 'submission.submit.checklistErrors'));
         }
     }
 
@@ -402,7 +412,7 @@ class PKPSubmissionSubmitStep1Form extends SubmissionSubmitForm
             // Create a publication
             $publication = new Publication();
             $this->setPublicationData($publication, $this->submission);
-            $publication->setData('status', STATUS_QUEUED);
+            $publication->setData('status', PKPSubmission::STATUS_QUEUED);
             $publication->setData('version', 1);
             $publication = Services::get('publication')->add($publication, $request);
             $this->submission = Services::get('submission')->edit($this->submission, ['currentPublicationId' => $publication->getId()], $request);
@@ -461,4 +471,8 @@ class PKPSubmissionSubmitStep1Form extends SubmissionSubmitForm
 
         return $this->submissionId;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\submission\form\PKPSubmissionSubmitStep1Form', '\PKPSubmissionSubmitStep1Form');
 }

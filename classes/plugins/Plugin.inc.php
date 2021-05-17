@@ -44,7 +44,19 @@
  *  <lazy-load>1</lazy-load>
  */
 
+namespace PKP\plugins;
+
+use APP\core\Application;
 use APP\i18n\AppLocale;
+use APP\template\TemplateManager;
+use Exception;
+use PKP\config\Config;
+
+use PKP\core\Registry;
+use PKP\db\DAORegistry;
+use PKP\install\Installer;
+
+use PKP\template\PKPTemplateResource;
 
 // Define the well-known file name for filter configuration data.
 define('PLUGIN_FILTER_DATAFILE', 'filterConfig.xml');
@@ -668,7 +680,7 @@ abstract class Plugin
 
         if ($sql === false) {
             // The template file seems to be invalid.
-            $installer->setError(INSTALLER_ERROR_DB, str_replace('{$file}', $this->getInstallEmailTemplatesFile(), __('installer.installParseEmailTemplatesFileError')));
+            $installer->setError(Installer::INSTALLER_ERROR_DB, str_replace('{$file}', $this->getInstallEmailTemplatesFile(), __('installer.installParseEmailTemplatesFileError')));
             $result = false;
         } else {
             // Are there any yet uninstalled email templates?
@@ -706,7 +718,7 @@ abstract class Plugin
             if ($sql) {
                 $result = $installer->executeSQL($sql);
             } else {
-                $installer->setError(INSTALLER_ERROR_DB, str_replace('{$file}', $filename, __('installer.installParseEmailTemplatesFileError')));
+                $installer->setError(Installer::INSTALLER_ERROR_DB, str_replace('{$file}', $filename, __('installer.installParseEmailTemplatesFileError')));
                 $result = false;
             }
         }
@@ -770,7 +782,7 @@ abstract class Plugin
             $result = $installer->installFilterConfig($filterConfigFile);
             if (!$result) {
                 // The filter configuration file seems to be invalid.
-                $installer->setError(INSTALLER_ERROR_DB, str_replace('{$file}', $filterConfigFile, __('installer.installParseFilterConfigFileError')));
+                $installer->setError(Installer::INSTALLER_ERROR_DB, str_replace('{$file}', $filterConfigFile, __('installer.installParseFilterConfigFileError')));
             }
         }
 
@@ -796,7 +808,7 @@ abstract class Plugin
             try {
                 $migration->up();
             } catch (Exception $e) {
-                $installer->setError(INSTALLER_ERROR_DB, __('installer.installMigrationError', ['class' => get_class($migration), 'message' => $e->getMessage()]));
+                $installer->setError(Installer::INSTALLER_ERROR_DB, __('installer.installMigrationError', ['class' => get_class($migration), 'message' => $e->getMessage()]));
                 $result = false;
             }
         }
@@ -902,4 +914,8 @@ abstract class Plugin
     {
         return true;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\plugins\Plugin', '\Plugin');
 }

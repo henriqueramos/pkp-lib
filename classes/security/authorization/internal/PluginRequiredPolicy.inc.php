@@ -13,7 +13,10 @@
  *
  */
 
-import('lib.pkp.classes.security.authorization.AuthorizationPolicy');
+namespace PKP\security\authorization\internal;
+
+use PKP\plugins\PluginRegistry;
+use PKP\security\authorization\AuthorizationPolicy;
 
 class PluginRequiredPolicy extends AuthorizationPolicy
 {
@@ -52,12 +55,16 @@ class PluginRequiredPolicy extends AuthorizationPolicy
                 break;
             }
         }
-        if (!is_a($foundPlugin, 'Plugin')) {
-            return AUTHORIZATION_DENY;
+        if (!$foundPlugin instanceof \PKP\plugins\Plugin) {
+            return AuthorizationPolicy::AUTHORIZATION_DENY;
         }
 
         // Add the plugin to the authorized context.
         $this->addAuthorizedContextObject(ASSOC_TYPE_PLUGIN, $foundPlugin);
-        return AUTHORIZATION_PERMIT;
+        return AuthorizationPolicy::AUTHORIZATION_PERMIT;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\security\authorization\internal\PluginRequiredPolicy', '\PluginRequiredPolicy');
 }

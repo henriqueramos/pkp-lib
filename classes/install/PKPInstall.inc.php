@@ -25,13 +25,25 @@
  *  - Update the config file with installation parameters.
  */
 
+namespace PKP\install;
 
-import('lib.pkp.classes.install.Installer');
-
+use APP\core\Application;
 use APP\core\Services;
-use Illuminate\Config\Repository;
+use APP\i18n\AppLocale;
 
+use Illuminate\Config\Repository;
+use Illuminate\Database\DatabaseServiceProvider;
+use Illuminate\Events\EventServiceProvider;
+use PKP\config\Config;
+use PKP\core\PKPContainer;
+use PKP\db\DAORegistry;
+
+use PKP\file\FileManager;
 use PKP\services\PKPSchemaService;
+use PKP\site\Version;
+
+// FIXME: Add namespacing
+use Validation;
 
 class PKPInstall extends Installer
 {
@@ -99,13 +111,12 @@ class PKPInstall extends Installer
 
         try {
             // Register database and related services in the container
-            import('lib.pkp.classes.core.PKPContainer');
             $laravelContainer = PKPContainer::getInstance();
             $laravelContainer->instance('config', new Repository($items));
-            $laravelContainer->register(new Illuminate\Events\EventServiceProvider($laravelContainer));
-            $laravelContainer->register(new Illuminate\Database\DatabaseServiceProvider($laravelContainer));
+            $laravelContainer->register(new EventServiceProvider($laravelContainer));
+            $laravelContainer->register(new DatabaseServiceProvider($laravelContainer));
         } catch (Exception $e) {
-            $this->setError(INSTALLER_ERROR_DB, $e->getMessage());
+            $this->setError(Installer::INSTALLER_ERROR_DB, $e->getMessage());
             return false;
         }
 
@@ -138,18 +149,17 @@ class PKPInstall extends Installer
         // Check if files directory exists and is writeable
         if (!(file_exists($this->getParam('filesDir')) && is_writeable($this->getParam('filesDir')))) {
             // Files upload directory unusable
-            $this->setError(INSTALLER_ERROR_GENERAL, 'installer.installFilesDirError');
+            $this->setError(Installer::INSTALLER_ERROR_GENERAL, 'installer.installFilesDirError');
             return false;
         } else {
             // Create required subdirectories
             $dirsToCreate = $this->getCreateDirectories();
-            import('lib.pkp.classes.file.FileManager');
             $fileManager = new FileManager();
             foreach ($dirsToCreate as $dirName) {
                 $dirToCreate = $this->getParam('filesDir') . '/' . $dirName;
                 if (!file_exists($dirToCreate)) {
                     if (!$fileManager->mkdir($dirToCreate)) {
-                        $this->setError(INSTALLER_ERROR_GENERAL, 'installer.installFilesDirError');
+                        $this->setError(Installer::INSTALLER_ERROR_GENERAL, 'installer.installFilesDirError');
                         return false;
                     }
                 }
@@ -160,18 +170,17 @@ class PKPInstall extends Installer
         $publicFilesDir = Config::getVar('files', 'public_files_dir');
         if (!(file_exists($publicFilesDir) && is_writeable($publicFilesDir))) {
             // Public files upload directory unusable
-            $this->setError(INSTALLER_ERROR_GENERAL, 'installer.publicFilesDirError');
+            $this->setError(Installer::INSTALLER_ERROR_GENERAL, 'installer.publicFilesDirError');
             return false;
         } else {
             // Create required subdirectories
             $dirsToCreate = $this->getCreateDirectories();
-            import('lib.pkp.classes.file.FileManager');
             $fileManager = new FileManager();
             foreach ($dirsToCreate as $dirName) {
                 $dirToCreate = $publicFilesDir . '/' . $dirName;
                 if (!file_exists($dirToCreate)) {
                     if (!$fileManager->mkdir($dirToCreate)) {
-                        $this->setError(INSTALLER_ERROR_GENERAL, 'installer.publicFilesDirError');
+                        $this->setError(Installer::INSTALLER_ERROR_GENERAL, 'installer.publicFilesDirError');
                         return false;
                     }
                 }
@@ -281,4 +290,8 @@ class PKPInstall extends Installer
 
         return true;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\install\PKPInstall', '\PKPInstall');
 }

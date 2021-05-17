@@ -19,11 +19,10 @@ namespace PKP\cliTool;
 
 define('RUNNING_UPGRADE', 1);
 
-import('classes.install.Upgrade');
-
 use APP\core\Application;
 
 use APP\i18n\AppLocale;
+use APP\install\Upgrade;
 use PKP\site\VersionCheck;
 
 class UpgradeTool extends \PKP\cliTool\CommandLineTool
@@ -94,7 +93,7 @@ class UpgradeTool extends \PKP\cliTool\CommandLineTool
      */
     public function upgrade()
     {
-        $installer = new \Upgrade([]);
+        $installer = new Upgrade([]);
         $installer->setLogger($this);
 
         if ($installer->execute()) {

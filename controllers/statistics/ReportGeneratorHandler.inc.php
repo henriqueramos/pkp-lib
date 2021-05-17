@@ -13,16 +13,18 @@
  * @brief Handle requests for report generator functions.
  */
 
-import('classes.handler.Handler');
-import('classes.statistics.StatisticsHelper');
-
+use APP\handler\Handler;
+use APP\statistics\StatisticsHelper;
 use PKP\core\JSONMessage;
+
+use PKP\security\authorization\ContextAccessPolicy;
+use PKP\statistics\PKPStatisticsHelper;
 
 class ReportGeneratorHandler extends Handler
 {
     /**
      * Constructor
-     **/
+     */
     public function __construct()
     {
         parent::__construct();
@@ -37,7 +39,6 @@ class ReportGeneratorHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -207,15 +208,15 @@ class ReportGeneratorHandler extends Handler
 
         // If the report plugin doesn't works with the file type column,
         // don't load file types.
-        if (isset($columns[STATISTICS_DIMENSION_FILE_TYPE])) {
+        if (isset($columns[PKPStatisticsHelper::STATISTICS_DIMENSION_FILE_TYPE])) {
             $fileTypes = $statsHelper->getFileTypeString();
         } else {
             $fileTypes = null;
         }
 
         // Metric type will be presented in header, remove if any.
-        if (isset($columns[STATISTICS_DIMENSION_METRIC_TYPE])) {
-            unset($columns[STATISTICS_DIMENSION_METRIC_TYPE]);
+        if (isset($columns[PKPStatisticsHelper::STATISTICS_DIMENSION_METRIC_TYPE])) {
+            unset($columns[PKPStatisticsHelper::STATISTICS_DIMENSION_METRIC_TYPE]);
         }
 
         $reportTemplate = $request->getUserVar('reportTemplate');

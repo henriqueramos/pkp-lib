@@ -11,9 +11,13 @@
  * @brief Describe database table structures.
  */
 
+namespace PKP\migration;
+
 use Illuminate\Database\Migrations\Migration;
+
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use PKP\submission\Genre;
 
 class GenresMigration extends Migration
 {
@@ -29,8 +33,7 @@ class GenresMigration extends Migration
             $table->bigInteger('seq');
             $table->smallInteger('enabled')->default(1);
 
-            import('lib.pkp.classes.submission.Genre'); // for constant
-            $table->bigInteger('category')->default(GENRE_CATEGORY_DOCUMENT);
+            $table->bigInteger('category')->default(Genre::GENRE_CATEGORY_DOCUMENT);
 
             $table->smallInteger('dependent')->default(0);
             $table->smallInteger('supplementary')->default(0);
@@ -57,4 +60,8 @@ class GenresMigration extends Migration
         Schema::drop('genre_settings');
         Schema::drop('genres');
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\migration\GenresMigration', '\GenresMigration');
 }

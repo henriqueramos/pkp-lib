@@ -14,9 +14,11 @@
  *  metrics table.
  */
 
-namespace PKP\Services\QueryBuilders;
+namespace PKP\services\queryBuilders;
 
 use Illuminate\Support\Facades\DB;
+
+use PKP\statistics\PKPStatisticsHelper;
 
 class PKPStatsQueryBuilder
 {
@@ -56,7 +58,7 @@ class PKPStatsQueryBuilder
      *
      * @param array|int $contextIds
      *
-     * @return \PKP\Services\QueryBuilders\PKPStatsQueryBuilder
+     * @return \PKP\services\queryBuilders\PKPStatsQueryBuilder
      */
     public function filterByContexts($contextIds)
     {
@@ -69,7 +71,7 @@ class PKPStatsQueryBuilder
      *
      * @param array|int $submissionIds
      *
-     * @return \PKP\Services\QueryBuilders\PKPStatsQueryBuilder
+     * @return \PKP\services\queryBuilders\PKPStatsQueryBuilder
      */
     public function filterBySubmissions($submissionIds)
     {
@@ -82,7 +84,7 @@ class PKPStatsQueryBuilder
      *
      * @param array|int $assocTypes
      *
-     * @return \PKP\Services\QueryBuilders\PKPStatsQueryBuilder
+     * @return \PKP\services\queryBuilders\PKPStatsQueryBuilder
      */
     public function filterByAssocTypes($assocTypes)
     {
@@ -95,7 +97,7 @@ class PKPStatsQueryBuilder
      *
      * @param array|int $assocIds
      *
-     * @return \PKP\Services\QueryBuilders\PKPStatsQueryBuilder
+     * @return \PKP\services\queryBuilders\PKPStatsQueryBuilder
      */
     public function filterByAssocIds($assocIds)
     {
@@ -108,7 +110,7 @@ class PKPStatsQueryBuilder
      *
      * @param array|int $fileTypes STATISTICS_FILE_TYPE_*
      *
-     * @return \PKP\Services\QueryBuilders\PKPStatsQueryBuilder
+     * @return \PKP\services\queryBuilders\PKPStatsQueryBuilder
      */
     public function filterByFileTypes($fileTypes)
     {
@@ -122,7 +124,7 @@ class PKPStatsQueryBuilder
      *
      * @param array|int $sectionIds
      *
-     * @return \PKP\Services\QueryBuilders\PKPStatsQueryBuilder
+     * @return \PKP\services\queryBuilders\PKPStatsQueryBuilder
      */
     public function filterBySections($sectionIds)
     {
@@ -135,7 +137,7 @@ class PKPStatsQueryBuilder
      *
      * @param string $dateEnd YYYY-MM-DD
      *
-     * @return \PKP\Services\QueryBuilders\PKPStatsQueryBuilder
+     * @return \PKP\services\queryBuilders\PKPStatsQueryBuilder
      */
     public function before($dateEnd)
     {
@@ -148,7 +150,7 @@ class PKPStatsQueryBuilder
      *
      * @param string $dateStart YYYY-MM-DD
      *
-     * @return \PKP\Services\QueryBuilders\PKPStatsQueryBuilder
+     * @return \PKP\services\queryBuilders\PKPStatsQueryBuilder
      */
     public function after($dateStart)
     {
@@ -205,9 +207,9 @@ class PKPStatsQueryBuilder
         $q = $this->_getObject();
         $q->select(DB::raw('SUM(metric) as metric'));
         if (strlen($date) === 10) {
-            $q->where(STATISTICS_DIMENSION_DAY, '=', str_replace('-', '', $date));
+            $q->where(PKPStatisticsHelper::STATISTICS_DIMENSION_DAY, '=', str_replace('-', '', $date));
         } else {
-            $q->where(STATISTICS_DIMENSION_MONTH, '=', str_replace('-', '', $date));
+            $q->where(PKPStatisticsHelper::STATISTICS_DIMENSION_MONTH, '=', str_replace('-', '', $date));
         }
         return $q;
     }
@@ -239,32 +241,32 @@ class PKPStatsQueryBuilder
         $q = DB::table('metrics');
 
         if (!empty($this->contextIds)) {
-            $q->whereIn(STATISTICS_DIMENSION_CONTEXT_ID, $this->contextIds);
+            $q->whereIn(PKPStatisticsHelper::STATISTICS_DIMENSION_CONTEXT_ID, $this->contextIds);
         }
 
         if (!empty($this->submissionIds)) {
-            $q->whereIn(STATISTICS_DIMENSION_SUBMISSION_ID, $this->submissionIds);
+            $q->whereIn(PKPStatisticsHelper::STATISTICS_DIMENSION_SUBMISSION_ID, $this->submissionIds);
         }
 
         if (!empty($this->sectionIds)) {
-            $q->whereIn(STATISTICS_DIMENSION_PKP_SECTION_ID, $this->sectionIds);
+            $q->whereIn(PKPStatisticsHelper::STATISTICS_DIMENSION_PKP_SECTION_ID, $this->sectionIds);
         }
 
         if (!empty($this->assocTypes)) {
-            $q->whereIn(STATISTICS_DIMENSION_ASSOC_TYPE, $this->assocTypes);
+            $q->whereIn(PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_TYPE, $this->assocTypes);
 
             if (!empty($this->assocIds)) {
-                $q->whereIn(STATISTICS_DIMENSION_ASSOC_ID, $this->assocIds);
+                $q->whereIn(PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_ID, $this->assocIds);
             }
         }
 
         if (!empty($this->fileTypes)) {
-            $q->whereIn(STATISTICS_DIMENSION_FILE_TYPE, $this->fileTypes);
+            $q->whereIn(PKPStatisticsHelper::STATISTICS_DIMENSION_FILE_TYPE, $this->fileTypes);
         }
 
-        $q->whereBetween(STATISTICS_DIMENSION_DAY, [$this->dateStart, $this->dateEnd]);
+        $q->whereBetween(PKPStatisticsHelper::STATISTICS_DIMENSION_DAY, [$this->dateStart, $this->dateEnd]);
 
-        $q->where(STATISTICS_DIMENSION_METRIC_TYPE, '=', METRIC_TYPE_COUNTER);
+        $q->where(PKPStatisticsHelper::STATISTICS_DIMENSION_METRIC_TYPE, '=', METRIC_TYPE_COUNTER);
 
         \HookRegistry::call('Stats::queryObject', [&$q, $this]);
 

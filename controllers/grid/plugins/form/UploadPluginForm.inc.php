@@ -13,11 +13,13 @@
  * @brief Form to upload a plugin file.
  */
 
-// Import the base Form.
-import('lib.pkp.classes.form.Form');
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use PKP\file\TemporaryFileManager;
+use PKP\form\Form;
 
-import('lib.pkp.classes.plugins.PluginHelper');
-import('lib.pkp.classes.file.FileManager');
+use PKP\notification\PKPNotification;
+use PKP\plugins\PluginHelper;
 
 class UploadPluginForm extends Form
 {
@@ -36,7 +38,7 @@ class UploadPluginForm extends Form
 
         $this->_function = $function;
 
-        $this->addCheck(new FormValidator($this, 'temporaryFileId', 'required', 'manager.plugins.uploadFailed'));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'temporaryFileId', 'required', 'manager.plugins.uploadFailed'));
     }
 
     //
@@ -80,7 +82,6 @@ class UploadPluginForm extends Form
         $notificationMgr = new NotificationManager();
 
         // Retrieve the temporary file.
-        import('lib.pkp.classes.file.TemporaryFileManager');
         $temporaryFileManager = new TemporaryFileManager();
         $temporaryFileDao = DAORegistry::getDAO('TemporaryFileDAO'); /** @var TemporaryFileDAO $temporaryFileDao */
         $temporaryFile = $temporaryFileDao->getTemporaryFile($this->getData('temporaryFileId'), $user->getId());
@@ -89,7 +90,7 @@ class UploadPluginForm extends Form
         try {
             $pluginDir = $pluginHelper->extractPlugin($temporaryFile->getFilePath(), $temporaryFile->getOriginalFileName());
         } catch (Exception $e) {
-            $notificationMgr->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
+            $notificationMgr->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
             return false;
         } finally {
             $temporaryFileManager->deleteById($temporaryFile->getId(), $user->getId());
@@ -102,7 +103,7 @@ class UploadPluginForm extends Form
                     $pluginVersion = $pluginHelper->installPlugin($pluginDir);
                     $notificationMgr->createTrivialNotification(
                         $user->getId(),
-                        NOTIFICATION_TYPE_SUCCESS,
+                        PKPNotification::NOTIFICATION_TYPE_SUCCESS,
                         ['contents' =>
                             __('manager.plugins.installSuccessful', ['versionNumber' => $pluginVersion->getVersionString(false)])]
                     );
@@ -116,14 +117,14 @@ class UploadPluginForm extends Form
                     );
                     $notificationMgr->createTrivialNotification(
                         $user->getId(),
-                        NOTIFICATION_TYPE_SUCCESS,
+                        PKPNotification::NOTIFICATION_TYPE_SUCCESS,
                         ['contents' => __('manager.plugins.upgradeSuccessful', ['versionString' => $pluginVersion->getVersionString(false)])]
                     );
                     break;
                 default: assert(false); // Illegal PLUGIN_ACTION_...
             }
         } catch (Exception $e) {
-            $notificationMgr->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
+            $notificationMgr->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
             $temporaryFileManager->rmtree($pluginDir);
             return false;
         }

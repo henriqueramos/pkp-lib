@@ -14,10 +14,19 @@
  *
  */
 
-import('lib.pkp.classes.handler.APIHandler');
-
 use APP\core\Services;
+use APP\notification\Notification;
+use APP\notification\NotificationManager;
+use PKP\handler\APIHandler;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\ContextAccessPolicy;
+use PKP\security\authorization\PublicationWritePolicy;
+use PKP\security\authorization\StageRolePolicy;
+use PKP\security\authorization\SubmissionAccessPolicy;
+
+use PKP\services\interfaces\EntityWriteInterface;
 use PKP\services\PKPSchemaService;
+use PKP\submission\PKPSubmission;
 
 class PKPSubmissionHandler extends APIHandler
 {
@@ -161,21 +170,17 @@ class PKPSubmissionHandler extends APIHandler
     {
         $routeName = $this->getSlimRequest()->getAttribute('route')->getName();
 
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
 
         if (in_array($routeName, $this->requiresSubmissionAccess)) {
-            import('lib.pkp.classes.security.authorization.SubmissionAccessPolicy');
             $this->addPolicy(new SubmissionAccessPolicy($request, $args, $roleAssignments));
         }
 
         if (in_array($routeName, $this->requiresPublicationWriteAccess)) {
-            import('lib.pkp.classes.security.authorization.PublicationWritePolicy');
             $this->addPolicy(new PublicationWritePolicy($request, $args, $roleAssignments));
         }
 
         if (in_array($routeName, $this->requiresProductionStageAccess)) {
-            import('lib.pkp.classes.security.authorization.StageRolePolicy');
             $this->addPolicy(new StageRolePolicy($this->productionStageAccessRoles, WORKFLOW_STAGE_ID_PRODUCTION, false));
         }
 
@@ -237,6 +242,10 @@ class PKPSubmissionHandler extends APIHandler
                         $val = [$val];
                     }
                     $params[$param] = array_map('intval', $val);
+                    // Special case: assignedTo can be -1 for unassigned
+                    if ($param == 'assignedTo' && $val == [-1]) {
+                        $params[$param] = -1;
+                    }
                     break;
 
                 case 'daysInactive':
@@ -351,7 +360,7 @@ class PKPSubmissionHandler extends APIHandler
         $primaryLocale = $request->getContext()->getPrimaryLocale();
         $allowedLocales = $request->getContext()->getData('supportedSubmissionLocales');
 
-        $errors = Services::get('submission')->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
+        $errors = Services::get('submission')->validate(EntityWriteInterface::VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
 
         if (!empty($errors)) {
             return $response->withStatus(400)->withJson($errors);
@@ -407,7 +416,7 @@ class PKPSubmissionHandler extends APIHandler
         $primaryLocale = $request->getContext()->getPrimaryLocale();
         $allowedLocales = $request->getContext()->getData('supportedSubmissionLocales');
 
-        $errors = Services::get('submission')->validate(VALIDATE_ACTION_EDIT, $params, $allowedLocales, $primaryLocale);
+        $errors = Services::get('submission')->validate(EntityWriteInterface::VALIDATE_ACTION_EDIT, $params, $allowedLocales, $primaryLocale);
 
         if (!empty($errors)) {
             return $response->withStatus(400)->withJson($errors);
@@ -615,7 +624,7 @@ class PKPSubmissionHandler extends APIHandler
             $primaryLocale = $params['locale'];
         }
 
-        $errors = Services::get('publication')->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
+        $errors = Services::get('publication')->validate(EntityWriteInterface::VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
 
         if (!empty($errors)) {
             return $response->withStatus(400)->withJson($errors);
@@ -683,11 +692,11 @@ class PKPSubmissionHandler extends APIHandler
             $notificationManager->createNotification(
                 $request,
                 $user->getId(),
-                NOTIFICATION_TYPE_SUBMISSION_NEW_VERSION,
+                PKPNotification::NOTIFICATION_TYPE_SUBMISSION_NEW_VERSION,
                 $submission->getContextId(),
                 ASSOC_TYPE_SUBMISSION,
                 $submission->getId(),
-                NOTIFICATION_LEVEL_TASK
+                Notification::NOTIFICATION_LEVEL_TASK
             );
         }
 
@@ -719,7 +728,7 @@ class PKPSubmissionHandler extends APIHandler
         }
 
         // Publications can not be edited when they are published
-        if ($publication->getData('status') === STATUS_PUBLISHED) {
+        if ($publication->getData('status') === PKPSubmission::STATUS_PUBLISHED) {
             return $response->withStatus(403)->withJsonError('api.publication.403.cantEditPublished');
         }
 
@@ -745,7 +754,7 @@ class PKPSubmissionHandler extends APIHandler
         $primaryLocale = $publication->getData('locale');
         $allowedLocales = $submissionContext->getData('supportedSubmissionLocales');
 
-        $errors = Services::get('publication')->validate(VALIDATE_ACTION_EDIT, $params, $allowedLocales, $primaryLocale);
+        $errors = Services::get('publication')->validate(EntityWriteInterface::VALIDATE_ACTION_EDIT, $params, $allowedLocales, $primaryLocale);
 
         if (!empty($errors)) {
             return $response->withStatus(400)->withJson($errors);
@@ -792,7 +801,7 @@ class PKPSubmissionHandler extends APIHandler
             return $response->withStatus(403)->withJsonError('api.publications.403.submissionsDidNotMatch');
         }
 
-        if ($publication->getData('status') === STATUS_PUBLISHED) {
+        if ($publication->getData('status') === PKPSubmission::STATUS_PUBLISHED) {
             return $response->withStatus(403)->withJsonError('api.publication.403.alreadyPublished');
         }
 
@@ -848,7 +857,7 @@ class PKPSubmissionHandler extends APIHandler
             return $response->withStatus(403)->withJsonError('api.publications.403.submissionsDidNotMatch');
         }
 
-        if (!in_array($publication->getData('status'), [STATUS_PUBLISHED, STATUS_SCHEDULED])) {
+        if (!in_array($publication->getData('status'), [PKPSubmission::STATUS_PUBLISHED, PKPSubmission::STATUS_SCHEDULED])) {
             return $response->withStatus(403)->withJsonError('api.publication.403.alreadyUnpublished');
         }
 
@@ -892,7 +901,7 @@ class PKPSubmissionHandler extends APIHandler
             return $response->withStatus(403)->withJsonError('api.publications.403.submissionsDidNotMatch');
         }
 
-        if ($publication->getData('status') === STATUS_PUBLISHED) {
+        if ($publication->getData('status') === PKPSubmission::STATUS_PUBLISHED) {
             return $response->withStatus(403)->withJsonError('api.publication.403.cantDeletePublished');
         }
 

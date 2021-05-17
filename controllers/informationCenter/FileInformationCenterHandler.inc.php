@@ -15,8 +15,14 @@
 
 import('lib.pkp.controllers.informationCenter.InformationCenterHandler');
 
+// use Exception;
+
+use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
 use PKP\log\EventLogEntry;
+use PKP\notification\PKPNotification;
+
+use PKP\security\authorization\WorkflowStageAccessPolicy;
 
 class FileInformationCenterHandler extends InformationCenterHandler
 {
@@ -48,7 +54,6 @@ class FileInformationCenterHandler extends InformationCenterHandler
     public function authorize($request, &$args, $roleAssignments)
     {
         // Require stage access
-        import('lib.pkp.classes.security.authorization.WorkflowStageAccessPolicy');
         $this->addPolicy(new WorkflowStageAccessPolicy($request, $args, $roleAssignments, 'submissionId', (int) $request->getUserVar('stageId')));
 
         return parent::authorize($request, $args, $roleAssignments);
@@ -162,7 +167,7 @@ class FileInformationCenterHandler extends InformationCenterHandler
             $this->_logEvent($request, $this->submissionFile, EventLogEntry::SUBMISSION_LOG_NOTE_POSTED, 'SubmissionFileLog');
 
             $user = $request->getUser();
-            NotificationManager::createTrivialNotification($user->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.addedNote')]);
+            NotificationManager::createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.addedNote')]);
 
             $jsonViewNotesResponse = $this->viewNotes($args, $request);
             $json = new JSONMessage(true);

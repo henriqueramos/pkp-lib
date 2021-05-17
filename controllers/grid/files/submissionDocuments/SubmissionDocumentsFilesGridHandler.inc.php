@@ -16,6 +16,10 @@
 import('lib.pkp.controllers.grid.files.LibraryFileGridHandler');
 import('lib.pkp.controllers.grid.files.submissionDocuments.SubmissionDocumentsFilesGridDataProvider');
 
+use APP\template\TemplateManager;
+
+use PKP\linkAction\LinkAction;
+
 class SubmissionDocumentsFilesGridHandler extends LibraryFileGridHandler
 {
     /**

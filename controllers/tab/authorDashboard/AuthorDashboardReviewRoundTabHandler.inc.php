@@ -16,8 +16,14 @@
 // Import the base Handler.
 import('pages.authorDashboard.AuthorDashboardHandler');
 
+use APP\notification\Notification;
+use APP\template\TemplateManager;
+use APP\workflow\EditorDecisionActionsManager;
 use PKP\core\JSONMessage;
+
 use PKP\log\SubmissionEmailLogEntry;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\internal\WorkflowStageRequiredPolicy;
 
 class AuthorDashboardReviewRoundTabHandler extends AuthorDashboardHandler
 {
@@ -45,7 +51,6 @@ class AuthorDashboardReviewRoundTabHandler extends AuthorDashboardHandler
         $stageId = (int)$request->getUserVar('stageId');
 
         // Authorize stage id.
-        import('lib.pkp.classes.security.authorization.internal.WorkflowStageRequiredPolicy');
         $this->addPolicy(new WorkflowStageRequiredPolicy($stageId));
 
         // We need a review round id in request.
@@ -84,9 +89,9 @@ class AuthorDashboardReviewRoundTabHandler extends AuthorDashboardHandler
             'reviewRoundId' => $reviewRound->getId(),
             'submission' => $submission,
             'reviewRoundNotificationRequestOptions' => [
-                NOTIFICATION_LEVEL_NORMAL => [
-                    NOTIFICATION_TYPE_REVIEW_ROUND_STATUS => [ASSOC_TYPE_REVIEW_ROUND, $reviewRound->getId()]],
-                NOTIFICATION_LEVEL_TRIVIAL => []
+                Notification::NOTIFICATION_LEVEL_NORMAL => [
+                    PKPNotification::NOTIFICATION_TYPE_REVIEW_ROUND_STATUS => [ASSOC_TYPE_REVIEW_ROUND, $reviewRound->getId()]],
+                Notification::NOTIFICATION_LEVEL_TRIVIAL => []
             ],
         ]);
 
@@ -97,7 +102,6 @@ class AuthorDashboardReviewRoundTabHandler extends AuthorDashboardHandler
         }
 
         // Editor has taken an action and sent an email; Display the email
-        import('classes.workflow.EditorDecisionActionsManager');
         if ((new EditorDecisionActionsManager())->getEditorTakenActionInReviewRound($request->getContext(), $reviewRound)) {
             $submissionEmailLogDao = DAORegistry::getDAO('SubmissionEmailLogDAO'); /** @var SubmissionEmailLogDAO $submissionEmailLogDao */
             $user = $request->getUser();

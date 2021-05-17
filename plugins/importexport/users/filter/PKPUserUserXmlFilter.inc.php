@@ -13,9 +13,9 @@
  * @brief Base class that converts a set of users to a User XML document
  */
 
-use PKP\user\InterestManager;
-
 import('lib.pkp.plugins.importexport.native.filter.NativeExportFilter');
+
+use PKP\user\InterestManager;
 
 class PKPUserUserXmlFilter extends NativeExportFilter
 {

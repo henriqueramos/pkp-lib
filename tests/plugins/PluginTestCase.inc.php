@@ -22,10 +22,12 @@
 require_mock_env('env2');
 
 import('lib.pkp.tests.DatabaseTestCase');
-import('lib.pkp.classes.plugins.Plugin');
 
 use APP\core\Request;
+use APP\install\Install;
+
 use PKP\core\Registry;
+use PKP\plugins\Plugin;
 
 class PluginTestCase extends DatabaseTestCase
 {
@@ -78,7 +80,6 @@ class PluginTestCase extends DatabaseTestCase
         Registry::set('request', $mockRequest);
 
         // Instantiate the installer.
-        import('classes.install.Install');
         $installFile = './lib/pkp/tests/plugins/testPluginInstall.xml';
         $params = $this->getConnectionParams();
         $installer = new Install($params, $installFile, true);

@@ -16,8 +16,12 @@
  *
  */
 
+namespace PKP\payment;
+
 abstract class PaymentManager
 {
+    public const PAYMENT_TYPE_PUBLICATION = 7; // FIXME: This is OJS-only but referred to in pkp-lib. Move back to OJS.
+
     /** @var Context */
     public $_context;
 
@@ -130,4 +134,8 @@ abstract class PaymentManager
      * @return boolean success/failure
      */
     abstract public function fulfillQueuedPayment($request, $queuedPayment);
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\payment\PaymentManager', '\PaymentManager');
 }

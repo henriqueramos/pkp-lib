@@ -14,10 +14,10 @@
  *
  */
 
-import('lib.pkp.classes.handler.APIHandler');
-import('lib.pkp.classes.submission.PKPSubmission');
-
 use APP\core\Services;
+use PKP\handler\APIHandler;
+
+use PKP\security\authorization\ContextAccessPolicy;
 
 abstract class PKPBackendSubmissionsHandler extends APIHandler
 {
@@ -62,7 +62,6 @@ abstract class PKPBackendSubmissionsHandler extends APIHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -111,6 +110,10 @@ abstract class PKPBackendSubmissionsHandler extends APIHandler
                         $val = [$val];
                     }
                     $params[$param] = array_map('intval', $val);
+                    // Special case: assignedTo can be -1 for unassigned
+                    if ($param == 'assignedTo' && $val == [-1]) {
+                        $params[$param] = -1;
+                    }
                     break;
 
                 case 'daysInactive':

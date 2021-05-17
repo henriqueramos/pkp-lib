@@ -13,9 +13,11 @@
  * @brief Form for managers to create/edit navigationMenuItems.
  */
 
-import('lib.pkp.classes.form.Form');
-
 use APP\core\Services;
+use APP\template\TemplateManager;
+
+use PKP\form\Form;
+use PKP\navigationMenu\NavigationMenuItem;
 
 class PKPNavigationMenuItemsForm extends Form
 {
@@ -38,8 +40,8 @@ class PKPNavigationMenuItemsForm extends Form
 
         parent::__construct('controllers/grid/navigationMenus/form/navigationMenuItemsForm.tpl');
 
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
 
@@ -224,7 +226,7 @@ class PKPNavigationMenuItemsForm extends Form
     {
         import('lib.pkp.classes.navigationMenu.NavigationMenuItem');
         if ($this->getData('menuItemType') && $this->getData('menuItemType') != '') {
-            if ($this->getData('menuItemType') == NMI_TYPE_CUSTOM) {
+            if ($this->getData('menuItemType') == NavigationMenuItem::NMI_TYPE_CUSTOM) {
                 if (!preg_match('/^[a-zA-Z0-9\/._-]+$/', $this->getData('path'))) {
                     $this->addError('path', __('manager.navigationMenus.form.pathRegEx'));
                 }
@@ -235,7 +237,7 @@ class PKPNavigationMenuItemsForm extends Form
                 if (isset($navigationMenuItem) && $navigationMenuItem->getId() != $this->navigationMenuItemId) {
                     $this->addError('path', __('manager.navigationMenus.form.duplicatePath'));
                 }
-            } elseif ($this->getData('menuItemType') == NMI_TYPE_REMOTE_URL) {
+            } elseif ($this->getData('menuItemType') == NavigationMenuItem::NMI_TYPE_REMOTE_URL) {
                 $remoteUrls = $this->getData('remoteUrl');
                 foreach ($remoteUrls as $remoteUrl) {
                     if (!filter_var($remoteUrl, FILTER_VALIDATE_URL)) {

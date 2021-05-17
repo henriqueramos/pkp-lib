@@ -13,9 +13,16 @@
  * @brief Form for Step 2 of author submission: file upload
  */
 
-use PKP\submission\SubmissionFile;
+namespace PKP\submission\form;
 
-import('lib.pkp.classes.submission.form.SubmissionSubmitForm');
+use APP\core\Application;
+use APP\core\Services;
+use APP\template\TemplateManager;
+use PKP\core\PKPApplication;
+
+use PKP\db\DAORegistry;
+use PKP\file\FileManager;
+use PKP\submission\SubmissionFile;
 
 class PKPSubmissionSubmitStep2Form extends SubmissionSubmitForm
 {
@@ -79,16 +86,16 @@ class PKPSubmissionSubmitStep2Form extends SubmissionSubmitForm
                     'cancelUploadLabel' => __('form.dropzone.dictCancelUpload'),
                     'genrePromptLabel' => __('submission.submit.genre.label'),
                     'documentTypes' => [
-                        'DOCUMENT_TYPE_DEFAULT' => DOCUMENT_TYPE_DEFAULT,
-                        'DOCUMENT_TYPE_AUDIO' => DOCUMENT_TYPE_AUDIO,
-                        'DOCUMENT_TYPE_EXCEL' => DOCUMENT_TYPE_EXCEL,
-                        'DOCUMENT_TYPE_HTML' => DOCUMENT_TYPE_HTML,
-                        'DOCUMENT_TYPE_IMAGE' => DOCUMENT_TYPE_IMAGE,
-                        'DOCUMENT_TYPE_PDF' => DOCUMENT_TYPE_PDF,
-                        'DOCUMENT_TYPE_WORD' => DOCUMENT_TYPE_WORD,
-                        'DOCUMENT_TYPE_EPUB' => DOCUMENT_TYPE_EPUB,
-                        'DOCUMENT_TYPE_VIDEO' => DOCUMENT_TYPE_VIDEO,
-                        'DOCUMENT_TYPE_ZIP' => DOCUMENT_TYPE_ZIP,
+                        'DOCUMENT_TYPE_DEFAULT' => FileManager::DOCUMENT_TYPE_DEFAULT,
+                        'DOCUMENT_TYPE_AUDIO' => FileManager::DOCUMENT_TYPE_AUDIO,
+                        'DOCUMENT_TYPE_EXCEL' => FileManager::DOCUMENT_TYPE_EXCEL,
+                        'DOCUMENT_TYPE_HTML' => FileManager::DOCUMENT_TYPE_HTML,
+                        'DOCUMENT_TYPE_IMAGE' => FileManager::DOCUMENT_TYPE_IMAGE,
+                        'DOCUMENT_TYPE_PDF' => FileManager::DOCUMENT_TYPE_PDF,
+                        'DOCUMENT_TYPE_WORD' => FileManager::DOCUMENT_TYPE_WORD,
+                        'DOCUMENT_TYPE_EPUB' => FileManager::DOCUMENT_TYPE_EPUB,
+                        'DOCUMENT_TYPE_VIDEO' => FileManager::DOCUMENT_TYPE_VIDEO,
+                        'DOCUMENT_TYPE_ZIP' => FileManager::DOCUMENT_TYPE_ZIP,
                     ],
                     'emptyLabel' => __('submission.upload.instructions'),
                     'emptyAddLabel' => __('common.upload.addFile'),
@@ -180,4 +187,8 @@ class PKPSubmissionSubmitStep2Form extends SubmissionSubmitForm
 
         return $this->submissionId;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\submission\form\PKPSubmissionSubmitStep2Form', '\PKPSubmissionSubmitStep2Form');
 }

@@ -13,9 +13,11 @@
  * @brief Handle requests for public announcement functions.
  */
 
-import('classes.handler.Handler');
+use APP\handler\Handler;
 
+use APP\template\TemplateManager;
 use PKP\db\DBResultRange;
+use PKP\security\authorization\ContextRequiredPolicy;
 
 class AnnouncementHandler extends Handler
 {
@@ -27,7 +29,6 @@ class AnnouncementHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextRequiredPolicy');
         $this->addPolicy(new ContextRequiredPolicy($request));
 
         return parent::authorize($request, $args, $roleAssignments);

@@ -20,31 +20,15 @@
  * @brief Class defining basic operations for handling HTML forms.
  */
 
-import('lib.pkp.classes.form.FormError');
-import('lib.pkp.classes.form.FormBuilderVocabulary');
+namespace PKP\form;
 
-// Import all form validators for convenient use in sub-classes
-import('lib.pkp.classes.form.validation.FormValidatorUsername');
-import('lib.pkp.classes.form.validation.FormValidatorArray');
-import('lib.pkp.classes.form.validation.FormValidatorArrayCustom');
-import('lib.pkp.classes.form.validation.FormValidatorBoolean');
-import('lib.pkp.classes.form.validation.FormValidatorControlledVocab');
-import('lib.pkp.classes.form.validation.FormValidatorCustom');
-import('lib.pkp.classes.form.validation.FormValidatorReCaptcha');
-import('lib.pkp.classes.form.validation.FormValidatorEmail');
-import('lib.pkp.classes.form.validation.FormValidatorInSet');
-import('lib.pkp.classes.form.validation.FormValidatorLength');
-import('lib.pkp.classes.form.validation.FormValidatorLocale');
-import('lib.pkp.classes.form.validation.FormValidatorLocaleEmail');
-import('lib.pkp.classes.form.validation.FormValidatorCSRF');
-import('lib.pkp.classes.form.validation.FormValidatorPost');
-import('lib.pkp.classes.form.validation.FormValidatorRegExp');
-import('lib.pkp.classes.form.validation.FormValidatorUrl');
-import('lib.pkp.classes.form.validation.FormValidatorLocaleUrl');
-import('lib.pkp.classes.form.validation.FormValidatorISSN');
-import('lib.pkp.classes.form.validation.FormValidatorORCID');
-
+use APP\core\Application;
 use APP\i18n\AppLocale;
+
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use PKP\notification\PKPNotification;
+use PKP\plugins\HookRegistry;
 
 class Form
 {
@@ -114,7 +98,8 @@ class Form
             // this method is only called by a subclass. Results
             // in hook calls named e.g. "papergalleyform::Constructor"
             // Note that class names are always lower case.
-            HookRegistry::call(strtolower_codesafe(get_class($this)) . '::Constructor', [$this, &$template]);
+            $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+            HookRegistry::call(strtolower_codesafe(end($classNameParts)) . '::Constructor', [$this, &$template]);
         }
     }
 
@@ -190,12 +175,13 @@ class Form
         // in hook calls named e.g. "papergalleyform::display"
         // Note that class names are always lower case.
         $returner = null;
-        if (HookRegistry::call(strtolower_codesafe(get_class($this)) . '::display', [$this, &$returner])) {
+        $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+        if (HookRegistry::call(strtolower_codesafe(end($classNameParts)) . '::display', [$this, &$returner])) {
             return $returner;
         }
 
         $templateMgr = TemplateManager::getManager($request);
-        $templateMgr->setCacheability(CACHEABILITY_NO_STORE);
+        $templateMgr->setCacheability(TemplateManager::CACHEABILITY_NO_STORE);
 
 
         // Attach this form object to the Form Builder Vocabulary for validation to work
@@ -262,7 +248,8 @@ class Form
         // in hook calls named e.g. "papergalleyform::initData"
         // Note that class and function names are always lower
         // case.
-        HookRegistry::call(strtolower_codesafe(get_class($this) . '::initData'), [$this]);
+        $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+        HookRegistry::call(strtolower_codesafe(end($classNameParts) . '::initData'), [$this]);
     }
 
     /**
@@ -307,7 +294,8 @@ class Form
             // Note that class and function names are always lower
             // case.
             $value = null;
-            if (HookRegistry::call(strtolower_codesafe(get_class($this) . '::validate'), [$this, &$value])) {
+            $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+            if (HookRegistry::call(strtolower_codesafe(end($classNameParts) . '::validate'), [$this, &$value])) {
                 return $value;
             }
         }
@@ -318,11 +306,10 @@ class Form
 
             if (!$this->isValid() && $user) {
                 // Create a form error notification.
-                import('classes.notification.NotificationManager');
                 $notificationManager = new NotificationManager();
                 $notificationManager->createTrivialNotification(
                     $user->getId(),
-                    NOTIFICATION_TYPE_FORM_ERROR,
+                    PKPNotification::NOTIFICATION_TYPE_FORM_ERROR,
                     ['contents' => $this->getErrorsArray()]
                 );
             }
@@ -345,7 +332,8 @@ class Form
         // Note that class and function names are always lower
         // case.
         $returner = null;
-        HookRegistry::call(strtolower_codesafe(get_class($this) . '::execute'), array_merge([$this], $functionArgs, [&$returner]));
+        $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+        HookRegistry::call(strtolower_codesafe(end($classNameParts) . '::execute'), array_merge([$this], $functionArgs, [&$returner]));
         return $returner;
     }
 
@@ -362,7 +350,8 @@ class Form
         // Note that class and function names are always lower
         // case.
         $returner = [];
-        HookRegistry::call(strtolower_codesafe(get_class($this) . '::getLocaleFieldNames'), [$this, &$returner]);
+        $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+        HookRegistry::call(strtolower_codesafe(end($classNameParts) . '::getLocaleFieldNames'), [$this, &$returner]);
         return $returner;
     }
 
@@ -418,7 +407,8 @@ class Form
         // in hook calls named e.g. "papergalleyform::readUserVars"
         // Note that class and function names are always lower
         // case.
-        HookRegistry::call(strtolower_codesafe(get_class($this) . '::readUserVars'), [$this, &$vars]);
+        $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+        HookRegistry::call(strtolower_codesafe(end($classNameParts) . '::readUserVars'), [$this, &$vars]);
         $request = Application::get()->getRequest();
         foreach ($vars as $k) {
             $this->setData($k, $request->getUserVar($k));
@@ -517,4 +507,8 @@ class Form
         }
         return $returner;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\form\Form', '\Form');
 }

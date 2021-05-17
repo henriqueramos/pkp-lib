@@ -13,8 +13,9 @@
  * @brief ReviewForm grid row definition
  */
 
-import('lib.pkp.classes.controllers.grid.GridRow');
-import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
+use PKP\controllers\grid\GridRow;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 
 class ReviewFormGridRow extends GridRow
 {
@@ -32,7 +33,7 @@ class ReviewFormGridRow extends GridRow
 
         // Is this a new row or an existing row?
         $element = $this->getData();
-        assert(is_a($element, 'ReviewForm'));
+        assert($element instanceof \PKP\reviewForm\ReviewForm);
 
         $rowId = $this->getId();
 

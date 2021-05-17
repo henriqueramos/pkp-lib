@@ -13,12 +13,9 @@
  * @brief Class defining basic operations for handling HTML grids with categories.
  */
 
-// import grid classes
-import('lib.pkp.classes.controllers.grid.GridHandler');
-import('lib.pkp.classes.controllers.grid.GridCategoryRow');
+namespace PKP\controllers\grid;
 
-// empty category constant
-define('GRID_CATEGORY_NONE', 'NONE');
+use APP\template\TemplateManager;
 
 use PKP\core\JSONMessage;
 
@@ -43,7 +40,6 @@ class CategoryGridHandler extends GridHandler
     {
         parent::__construct($dataProvider);
 
-        import('lib.pkp.classes.controllers.grid.NullGridCellProvider');
         $this->addColumn(new GridColumn(
             'indent',
             null,
@@ -560,4 +556,8 @@ class CategoryGridHandler extends GridHandler
         $templateMgr->assign('renderedCategoryRow', $renderedCategoryRow);
         return $templateMgr->fetch('controllers/grid/gridBodyPartWithCategory.tpl');
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\grid\CategoryGridHandler', '\CategoryGridHandler');
 }

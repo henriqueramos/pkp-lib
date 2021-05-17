@@ -16,6 +16,10 @@
  * For general information about grids, see GridHandler.
  */
 
+namespace PKP\controllers\grid;
+
+use APP\i18n\AppLocale;
+use APP\template\TemplateManager;
 
 class GridCellProvider
 {
@@ -34,7 +38,7 @@ class GridCellProvider
      * To be used by a GridRow to generate a rendered representation of
      * the element for the given column.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return string the rendered representation of the element for the given column
@@ -74,7 +78,7 @@ class GridCellProvider
      * for a given column from a data element so that they may be assigned
      * to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -94,14 +98,18 @@ class GridCellProvider
      * should be delegated to the row.
      *
      * @param $request Request
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      * @param $position int GRID_ACTION_POSITION_...
      *
      * @return array an array of LinkAction instances
      */
-    public function getCellActions($request, $row, $column, $position = GRID_ACTION_POSITION_DEFAULT)
+    public function getCellActions($request, $row, $column, $position = GridHandler::GRID_ACTION_POSITION_DEFAULT)
     {
         return $column->getCellActions($request, $row, $position);
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\grid\GridCellProvider', '\GridCellProvider');
 }

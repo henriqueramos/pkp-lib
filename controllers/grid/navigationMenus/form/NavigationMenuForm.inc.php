@@ -15,9 +15,11 @@
  * @brief Form for manager to create/edit NavigationMenus.
  */
 
-import('lib.pkp.classes.form.Form');
-
 use APP\core\Services;
+use APP\template\TemplateManager;
+
+use PKP\form\Form;
+use PKP\navigationMenu\NavigationMenuItemAssignment;
 
 class NavigationMenuForm extends Form
 {
@@ -40,10 +42,10 @@ class NavigationMenuForm extends Form
 
         parent::__construct('controllers/grid/navigationMenus/form/navigationMenuForm.tpl');
 
-        $this->addCheck(new FormValidator($this, 'title', 'required', 'manager.navigationMenus.form.titleRequired'));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'title', 'required', 'manager.navigationMenus.form.titleRequired'));
 
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     /**

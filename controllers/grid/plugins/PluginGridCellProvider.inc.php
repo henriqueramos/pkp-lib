@@ -13,7 +13,12 @@
  * @brief Cell provider for columns in a plugin grid.
  */
 
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
+use PKP\controllers\grid\GridCellProvider;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxAction;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 
 class PluginGridCellProvider extends GridCellProvider
 {
@@ -21,7 +26,7 @@ class PluginGridCellProvider extends GridCellProvider
      * Extracts variables for a given column from a data element
      * so that they may be assigned to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -58,7 +63,7 @@ class PluginGridCellProvider extends GridCellProvider
     /**
      * @copydoc GridCellProvider::getCellActions()
      */
-    public function getCellActions($request, $row, $column, $position = GRID_ACTION_POSITION_DEFAULT)
+    public function getCellActions($request, $row, $column, $position = GridHandler::GRID_ACTION_POSITION_DEFAULT)
     {
         switch ($column->getId()) {
             case 'enabled':
@@ -70,7 +75,6 @@ class PluginGridCellProvider extends GridCellProvider
                 switch (true) {
                     case $plugin->getEnabled() && $plugin->getCanDisable():
                         // Create an action to disable the plugin
-                        import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
                         return [new LinkAction(
                             'disable',
                             new RemoteActionConfirmationModal(
@@ -85,7 +89,6 @@ class PluginGridCellProvider extends GridCellProvider
                         break;
                     case !$plugin->getEnabled() && $plugin->getCanEnable():
                         // Create an action to enable the plugin
-                        import('lib.pkp.classes.linkAction.request.AjaxAction');
                         return [new LinkAction(
                             'enable',
                             new AjaxAction(

@@ -11,7 +11,9 @@
  *
  * @brief Subclass for review form element column's cell provider
  */
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
+
+use PKP\controllers\grid\GridCellProvider;
+use PKP\controllers\grid\GridColumn;
 
 class ReviewFormElementGridCellProvider extends GridCellProvider
 {
@@ -19,7 +21,7 @@ class ReviewFormElementGridCellProvider extends GridCellProvider
      * Extracts variables for a given column from a data element
      * so that they may be assigned to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -28,7 +30,7 @@ class ReviewFormElementGridCellProvider extends GridCellProvider
     {
         $element = $row->getData();
         $columnId = $column->getId();
-        assert(is_a($element, 'ReviewFormElement') && !empty($columnId));
+        assert($element instanceof \PKP\reviewForm\ReviewFormElement && !empty($columnId));
         switch ($columnId) {
             case 'question':
                 $label = $element->getLocalizedQuestion();

@@ -72,7 +72,13 @@
  *    stem) to access the index
  */
 
-import('lib.pkp.classes.filter.TypeDescriptionFactory');
+namespace PKP\filter;
+
+use Exception;
+use PKP\core\PKPApplication;
+use PKP\core\PKPString;
+use PKP\core\RuntimeEnvironment;
+
 
 use PKP\plugins\HookRegistry;
 
@@ -301,7 +307,7 @@ class Filter extends \PKP\core\DataObject
      */
     public function setRuntimeEnvironment(&$runtimeEnvironment)
     {
-        assert(is_a($runtimeEnvironment, 'RuntimeEnvironment'));
+        assert($runtimeEnvironment instanceof RuntimeEnvironment);
         $this->_runtimeEnvironment = & $runtimeEnvironment;
 
         // Inject the runtime settings into the data object
@@ -430,7 +436,6 @@ class Filter extends \PKP\core\DataObject
             // If we found any runtime restrictions then construct a
             // runtime environment from the settings.
             if ($hasRuntimeSettings) {
-                import('lib.pkp.classes.core.RuntimeEnvironment');
                 $this->_runtimeEnvironment = new RuntimeEnvironment($phpVersionMin, $phpVersionMax, $phpExtensions, $externalPrograms);
             } else {
                 // Set null so that we don't try to construct
@@ -492,7 +497,8 @@ class Filter extends \PKP\core\DataObject
         // Process the filter
         $preliminaryOutput = & $this->process($input);
 
-        HookRegistry::call(strtolower_codesafe(get_class($this) . '::execute'), [&$preliminaryOutput]);
+        $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+        HookRegistry::call(strtolower_codesafe(end($classNameParts) . '::execute'), [&$preliminaryOutput]);
 
         // Validate the filter output
         if ((!is_null($preliminaryOutput) && $this->supports($input, $preliminaryOutput)) || $returnErrors) {
@@ -523,4 +529,8 @@ class Filter extends \PKP\core\DataObject
 
         return $runtimeEnvironmentSettings;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\filter\Filter', '\Filter');
 }

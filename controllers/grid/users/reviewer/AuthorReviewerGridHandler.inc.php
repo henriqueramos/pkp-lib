@@ -13,12 +13,17 @@
  * @brief Handle reviewer grid requests from author workflow in open reviews
  */
 
-// import grid base classes
-import('lib.pkp.classes.controllers.grid.users.reviewer.PKPReviewerGridHandler');
-
 // import reviewer grid specific classes
 import('lib.pkp.controllers.grid.users.reviewer.AuthorReviewerGridCellProvider');
 import('lib.pkp.controllers.grid.users.reviewer.AuthorReviewerGridRow');
+
+use APP\template\TemplateManager;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+use PKP\controllers\grid\users\reviewer\PKPReviewerGridHandler;
+use PKP\security\authorization\internal\ReviewAssignmentRequiredPolicy;
+use PKP\security\authorization\internal\ReviewRoundRequiredPolicy;
+use PKP\security\authorization\WorkflowStageAccessPolicy;
 
 use PKP\submission\reviewAssignment\ReviewAssignment;
 
@@ -60,7 +65,7 @@ class AuthorReviewerGridHandler extends PKPReviewerGridHandler
         parent::initialize($request, $args);
 
         // Reset actions
-        unset($this->_actions[GRID_ACTION_POSITION_ABOVE]);
+        unset($this->_actions[GridHandler::GRID_ACTION_POSITION_ABOVE]);
 
         // Columns
         $cellProvider = new AuthorReviewerGridCellProvider();
@@ -124,15 +129,12 @@ class AuthorReviewerGridHandler extends PKPReviewerGridHandler
         $this->_stageId = (int)$stageId;
 
         // Get the stage access policy
-        import('lib.pkp.classes.security.authorization.WorkflowStageAccessPolicy');
         $workflowStageAccessPolicy = new WorkflowStageAccessPolicy($request, $args, $roleAssignments, 'submissionId', $stageId);
 
         // Add policy to ensure there is a review round id.
-        import('lib.pkp.classes.security.authorization.internal.ReviewRoundRequiredPolicy');
         $workflowStageAccessPolicy->addPolicy(new ReviewRoundRequiredPolicy($request, $args, 'reviewRoundId', ['fetchGrid', 'fetchRow']));
 
         // Add policy to ensure there is a review assignment for certain operations.
-        import('lib.pkp.classes.security.authorization.internal.ReviewAssignmentRequiredPolicy');
         $workflowStageAccessPolicy->addPolicy(new ReviewAssignmentRequiredPolicy($request, $args, 'reviewAssignmentId', ['readReview', 'reviewRead'], [SUBMISSION_REVIEW_METHOD_OPEN]));
         $this->addPolicy($workflowStageAccessPolicy);
 

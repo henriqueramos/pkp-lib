@@ -13,11 +13,18 @@
  * @brief Handle NavigationMenuItems grid requests.
  */
 
-import('lib.pkp.classes.controllers.grid.GridHandler');
-import('lib.pkp.classes.controllers.grid.DataObjectGridCellProvider');
-import('controllers.grid.navigationMenus.form.NavigationMenuItemsForm');
-
+use APP\notification\NotificationManager;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 use PKP\core\JSONMessage;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\PolicySet;
+
+use PKP\security\authorization\RoleBasedHandlerOperationPolicy;
+
+import('controllers.grid.navigationMenus.form.NavigationMenuItemsForm');
 
 class NavigationMenuItemsGridHandler extends GridHandler
 {
@@ -50,10 +57,8 @@ class NavigationMenuItemsGridHandler extends GridHandler
         $context = $request->getContext();
         $contextId = $context ? $context->getId() : CONTEXT_ID_NONE;
 
-        import('lib.pkp.classes.security.authorization.PolicySet');
-        $rolePolicy = new PolicySet(COMBINING_PERMIT_OVERRIDES);
+        $rolePolicy = new PolicySet(PolicySet::COMBINING_PERMIT_OVERRIDES);
 
-        import('lib.pkp.classes.security.authorization.RoleBasedHandlerOperationPolicy');
         foreach ($roleAssignments as $role => $operations) {
             $rolePolicy->addPolicy(new RoleBasedHandlerOperationPolicy($request, $role, $operations));
         }
@@ -103,8 +108,6 @@ class NavigationMenuItemsGridHandler extends GridHandler
 
         // Add grid action.
         $router = $request->getRouter();
-
-        import('lib.pkp.classes.linkAction.request.AjaxModal');
 
         $this->addAction(
             new LinkAction(
@@ -187,7 +190,7 @@ class NavigationMenuItemsGridHandler extends GridHandler
             // Record the notification to user.
             $notificationManager = new NotificationManager();
             $user = $request->getUser();
-            $notificationManager->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => __($notificationLocaleKey)]);
+            $notificationManager->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => __($notificationLocaleKey)]);
 
             // Prepare the grid row data.
             return \PKP\db\DAO::getDataChangedEvent($navigationMenuItemId);
@@ -272,7 +275,7 @@ class NavigationMenuItemsGridHandler extends GridHandler
             // Create notification.
             $notificationManager = new NotificationManager();
             $user = $request->getUser();
-            $notificationManager->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.removedNavigationMenuItem')]);
+            $notificationManager->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.removedNavigationMenuItem')]);
 
             return \PKP\db\DAO::getDataChangedEvent($navigationMenuItemId);
         }

@@ -13,7 +13,9 @@
  * @brief Base class for query grid row definition
  */
 
-import('lib.pkp.classes.controllers.grid.GridRow');
+use PKP\controllers\grid\GridRow;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 
 class QueryNotesGridRow extends GridRow
 {
@@ -68,7 +70,6 @@ class QueryNotesGridRow extends GridRow
 
             // Add row-level actions
             if ($this->_queryNotesGrid->getCanManage($this->getData())) {
-                import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
                 $this->addAction(
                     new LinkAction(
                         'deleteNote',

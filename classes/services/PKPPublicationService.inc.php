@@ -12,26 +12,31 @@
  * @brief Helper class that encapsulates business logic for publications
  */
 
-namespace PKP\Services;
+namespace PKP\services;
 
 use APP\core\Application;
 use APP\core\Services;
+use APP\log\SubmissionEventLogEntry;
 use PKP\core\Core;
 use PKP\db\DAORegistry;
 use PKP\db\DAOResultFactory;
 use PKP\db\DBResultRange;
+use PKP\log\SubmissionLog;
+use PKP\observers\events\PublishedEvent;
 use PKP\plugins\HookRegistry;
-use PKP\Services\interfaces\EntityPropertyInterface;
-use PKP\Services\interfaces\EntityReadInterface;
-use PKP\Services\interfaces\EntityWriteInterface;
+use PKP\services\interfaces\EntityPropertyInterface;
+use PKP\services\interfaces\EntityReadInterface;
+use PKP\services\interfaces\EntityWriteInterface;
 
-use PKP\Services\QueryBuilders\PKPPublicationQueryBuilder;
-use SubmissionLog;
+use PKP\services\queryBuilders\PKPPublicationQueryBuilder;
+use PKP\statistics\PKPStatisticsHelper;
+use PKP\submission\PKPSubmission;
+use PKP\validation\ValidatorFactory;
 
 class PKPPublicationService implements EntityPropertyInterface, EntityReadInterface, EntityWriteInterface
 {
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::get()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::get()
      */
     public function get($publicationId)
     {
@@ -40,7 +45,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getCount()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getCount()
      */
     public function getCount($args = [])
     {
@@ -48,7 +53,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getIds()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getIds()
      */
     public function getIds($args = [])
     {
@@ -89,7 +94,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getMax()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getMax()
      */
     public function getMax($args = [])
     {
@@ -104,7 +109,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityReadInterface::getQueryBuilder()
+     * @copydoc \PKP\services\interfaces\EntityReadInterface::getQueryBuilder()
      *
      * @return PKPPublicationQueryBuilder
      */
@@ -136,7 +141,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getProperties()
      *
      * @param null|mixed $args
      */
@@ -243,7 +248,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getSummaryProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getSummaryProperties()
      *
      * @param null|mixed $args
      */
@@ -255,7 +260,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getFullProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getFullProperties()
      *
      * @param null|mixed $args
      */
@@ -282,19 +287,18 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         import('classes.statistics.StatisticsHelper');
         return $row ?
             [$row->min_date_published, $row->max_date_published] :
-            [STATISTICS_EARLIEST_DATE, date('Y-m-d', strtotime('yesterday'))];
+            [PKPStatisticsHelper::STATISTICS_EARLIEST_DATE, date('Y-m-d', strtotime('yesterday'))];
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::validate()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::validate()
      */
     public function validate($action, $props, $allowedLocales, $primaryLocale)
     {
         \AppLocale::requireComponents(LOCALE_COMPONENT_PKP_SUBMISSION, LOCALE_COMPONENT_APP_SUBMISSION);
         $schemaService = Services::get('schema');
 
-        import('lib.pkp.classes.validation.ValidatorFactory');
-        $validator = \ValidatorFactory::make(
+        $validator = ValidatorFactory::make(
             $props,
             $schemaService->getValidationRules(PKPSchemaService::SCHEMA_PUBLICATION, $allowedLocales),
             [
@@ -305,7 +309,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         );
 
         // Check required fields
-        \ValidatorFactory::required(
+        ValidatorFactory::required(
             $validator,
             $action,
             $schemaService->getRequiredProps(PKPSchemaService::SCHEMA_PUBLICATION),
@@ -315,7 +319,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         );
 
         // Check for input from disallowed locales
-        \ValidatorFactory::allowedLocales($validator, $schemaService->getMultilingualProps(PKPSchemaService::SCHEMA_PUBLICATION), $allowedLocales);
+        ValidatorFactory::allowedLocales($validator, $schemaService->getMultilingualProps(PKPSchemaService::SCHEMA_PUBLICATION), $allowedLocales);
 
         // The submissionId must match an existing submission
         if (isset($props['submissionId'])) {
@@ -340,9 +344,9 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
                     }
 
                     // If there is no submissionId the validator will throw it back anyway
-                    if ($action === VALIDATE_ACTION_ADD && !empty($props['submissionId'])) {
+                    if ($action === EntityWriteInterface::VALIDATE_ACTION_ADD && !empty($props['submissionId'])) {
                         $submission = Services::get('submission')->get($props['submissionId']);
-                    } elseif ($action === VALIDATE_ACTION_EDIT) {
+                    } elseif ($action === EntityWriteInterface::VALIDATE_ACTION_EDIT) {
                         $publication = Services::get('publication')->get($props['id']);
                         $submission = Services::get('submission')->get($publication->getData('submissionId'));
                     }
@@ -365,7 +369,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         // If a new file has been uploaded, check that the temporary file exists and
         // the current user owns it
         $user = Application::get()->getRequest()->getUser();
-        \ValidatorFactory::temporaryFilesExist(
+        ValidatorFactory::temporaryFilesExist(
             $validator,
             ['coverImage'],
             ['coverImage'],
@@ -409,7 +413,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         $errors = [];
 
         // Don't allow declined submissions to be published
-        if ($submission->getData('status') === STATUS_DECLINED) {
+        if ($submission->getData('status') === PKPSubmission::STATUS_DECLINED) {
             $errors['declined'] = __('publication.required.declined');
         }
 
@@ -424,7 +428,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::add()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::add()
      */
     public function add($publication, $request)
     {
@@ -484,7 +488,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         $newPublication = clone $publication;
         $newPublication->setData('id', null);
         $newPublication->setData('datePublished', null);
-        $newPublication->setData('status', STATUS_QUEUED);
+        $newPublication->setData('status', PKPSubmission::STATUS_QUEUED);
         $newPublication->setData('version', $publication->getData('version') + 1);
         $newPublication->stampModified();
         $newPublication = $this->add($newPublication, $request);
@@ -513,15 +517,13 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         HookRegistry::call('Publication::version', [&$newPublication, $publication, $request]);
 
         $submission = Services::get('submission')->get($newPublication->getData('submissionId'));
-        import('lib.pkp.classes.log.SubmissionLog');
-        import('classes.log.SubmissionEventLogEntry');
-        SubmissionLog::logEvent(Application::get()->getRequest(), $submission, SUBMISSION_LOG_CREATE_VERSION, 'publication.event.versionCreated');
+        SubmissionLog::logEvent(Application::get()->getRequest(), $submission, SubmissionEventLogEntry::SUBMISSION_LOG_CREATE_VERSION, 'publication.event.versionCreated');
 
         return $newPublication;
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::edit()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::edit()
      */
     public function edit($publication, $params, $request)
     {
@@ -564,9 +566,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         $submission = Services::get('submission')->get($newPublication->getData('submissionId'));
 
         // Log an event when publication data is updated
-        import('lib.pkp.classes.log.SubmissionLog');
-        import('classes.log.SubmissionEventLogEntry');
-        SubmissionLog::logEvent($request, $submission, SUBMISSION_LOG_METADATA_UPDATE, 'submission.event.general.metadataUpdated');
+        SubmissionLog::logEvent($request, $submission, SubmissionEventLogEntry::SUBMISSION_LOG_METADATA_UPDATE, 'submission.event.general.metadataUpdated');
 
         return $newPublication;
     }
@@ -588,16 +588,16 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         }
 
         if (strtotime($newPublication->getData('datePublished')) <= strtotime(Core::getCurrentDate())) {
-            $newPublication->setData('status', STATUS_PUBLISHED);
+            $newPublication->setData('status', PKPSubmission::STATUS_PUBLISHED);
         } else {
-            $newPublication->setData('status', STATUS_SCHEDULED);
+            $newPublication->setData('status', PKPSubmission::STATUS_SCHEDULED);
         }
 
         $newPublication->stampModified();
 
         // Set the copyright and license information
         $submission = Services::get('submission')->get($newPublication->getData('submissionId'));
-        if ($newPublication->getData('status') === STATUS_PUBLISHED) {
+        if ($newPublication->getData('status') === PKPSubmission::STATUS_PUBLISHED) {
             if (!$newPublication->getData('copyrightHolder')) {
                 $newPublication->setData('copyrightHolder', $submission->_getContextLicenseFieldValue(null, PERMISSIONS_FIELD_COPYRIGHT_HOLDER, $newPublication));
             }
@@ -625,18 +625,17 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         // Log an event when publication is published. Adjust the message depending
         // on whether this is the first publication or a subsequent version
         if (count($submission->getData('publications')) > 1) {
-            $msg = $newPublication->getData('status') === STATUS_SCHEDULED ? 'publication.event.versionScheduled' : 'publication.event.versionPublished';
+            $msg = $newPublication->getData('status') === PKPSubmission::STATUS_SCHEDULED ? 'publication.event.versionScheduled' : 'publication.event.versionPublished';
         } else {
-            $msg = $newPublication->getData('status') === STATUS_SCHEDULED ? 'publication.event.scheduled' : 'publication.event.published';
+            $msg = $newPublication->getData('status') === PKPSubmission::STATUS_SCHEDULED ? 'publication.event.scheduled' : 'publication.event.published';
         }
-        import('lib.pkp.classes.log.SubmissionLog');
-        import('classes.log.SubmissionEventLogEntry');
-        SubmissionLog::logEvent(Application::get()->getRequest(), $submission, SUBMISSION_LOG_METADATA_PUBLISH, $msg);
+        SubmissionLog::logEvent(Application::get()->getRequest(), $submission, SubmissionEventLogEntry::SUBMISSION_LOG_METADATA_PUBLISH, $msg);
 
         HookRegistry::call('Publication::publish', [&$newPublication, $publication, $submission]);
+        event(new PublishedEvent($newPublication, $publication, $submission));
 
         // Update the search index.
-        if ($newPublication->getData('status') === STATUS_PUBLISHED) {
+        if ($newPublication->getData('status') === PKPSubmission::STATUS_PUBLISHED) {
             Application::getSubmissionSearchIndex()->submissionMetadataChanged($submission);
             Application::getSubmissionSearchIndex()->submissionFilesChanged($submission);
             Application::getSubmissionSearchDAO()->flushCache();
@@ -656,7 +655,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     public function unpublish($publication)
     {
         $newPublication = clone $publication;
-        $newPublication->setData('status', STATUS_QUEUED);
+        $newPublication->setData('status', PKPSubmission::STATUS_QUEUED);
         $newPublication->stampModified();
 
         HookRegistry::call('Publication::unpublish::before', [&$newPublication, $publication]);
@@ -674,14 +673,12 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
         // Log an event when publication is unpublished. Adjust the message depending
         // on whether this is the first publication or a subsequent version
         $msg = count($submission->getData('publications')) > 1 ? 'publication.event.versionUnpublished' : 'publication.event.unpublished';
-        import('lib.pkp.classes.log.SubmissionLog');
-        import('classes.log.SubmissionEventLogEntry');
-        SubmissionLog::logEvent(Application::get()->getRequest(), $submission, SUBMISSION_LOG_METADATA_UNPUBLISH, $msg);
+        SubmissionLog::logEvent(Application::get()->getRequest(), $submission, SubmissionEventLogEntry::SUBMISSION_LOG_METADATA_UNPUBLISH, $msg);
 
         HookRegistry::call('Publication::unpublish', [&$newPublication, $publication, $submission]);
 
         // Update the metadata in the search index.
-        if ($submission->getData('status') !== STATUS_PUBLISHED) {
+        if ($submission->getData('status') !== PKPSubmission::STATUS_PUBLISHED) {
             Application::getSubmissionSearchIndex()->deleteTextIndex($submission->getId());
             Application::getSubmissionSearchIndex()->clearSubmissionFiles($submission);
         } else {
@@ -695,7 +692,7 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
     }
 
     /**
-     * @copydoc \PKP\Services\EntityProperties\EntityWriteInterface::delete()
+     * @copydoc \PKP\services\entityProperties\EntityWriteInterface::delete()
      */
     public function delete($publication)
     {
@@ -756,7 +753,6 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
                     }
                 }
                 if (!$fileInUse) {
-                    import('classes.file.PublicFileManager');
                     $publicFileManager = new \PublicFileManager();
                     $publicFileManager->removeContextFile($submission->getData('contextId'), $fileName);
                 }
@@ -775,7 +771,6 @@ class PKPPublicationService implements EntityPropertyInterface, EntityReadInterf
             $submissionContext = Services::get('context')->get($submission->getData('contextId'));
         }
 
-        import('lib.pkp.classes.file.TemporaryFileManager');
         $temporaryFileManager = new \TemporaryFileManager();
         $temporaryFile = $temporaryFileManager->getFile((int) $value['temporaryFileId'], $userId);
         $fileNameBase = join('_', ['submission', $submission->getId(), $publication->getId(), $settingName]); // eg - submission_1_1_coverImage

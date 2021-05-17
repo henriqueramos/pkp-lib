@@ -13,15 +13,11 @@
  * @brief base PKP class to handle query grid requests.
  */
 
-// import grid base classes
-import('lib.pkp.classes.controllers.grid.GridHandler');
-import('lib.pkp.classes.controllers.grid.DataObjectGridCellProvider');
-
-// Link action & modal classes
-import('lib.pkp.classes.linkAction.request.AjaxModal');
-
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 use PKP\core\JSONMessage;
 use PKP\note\NoteDAO;
+use PKP\security\authorization\QueryAccessPolicy;
 
 class QueryNotesGridHandler extends GridHandler
 {
@@ -86,7 +82,6 @@ class QueryNotesGridHandler extends GridHandler
         $stageId = $request->getUserVar('stageId'); // This is being validated in WorkflowStageAccessPolicy
 
         // Get the access policy
-        import('lib.pkp.classes.security.authorization.QueryAccessPolicy');
         $this->addPolicy(new QueryAccessPolicy($request, $args, $roleAssignments, $stageId));
         return parent::authorize($request, $args, $roleAssignments);
     }

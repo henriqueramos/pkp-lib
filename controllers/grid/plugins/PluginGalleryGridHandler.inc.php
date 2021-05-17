@@ -13,15 +13,26 @@
  * @brief Handle review form grid requests.
  */
 
-import('lib.pkp.classes.controllers.grid.GridHandler');
-import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+
+use PKP\core\JSONMessage;
+use PKP\file\TemporaryFileManager;
 
 /**
  * Global value for 'all' category string value
  */
 define('PLUGIN_GALLERY_ALL_CATEGORY_SEARCH_VALUE', 'all');
 
-use PKP\core\JSONMessage;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
+use PKP\notification\PKPNotification;
+use PKP\plugins\PluginHelper;
+use PKP\security\authorization\PolicySet;
+
+use PKP\security\authorization\RoleBasedHandlerOperationPolicy;
 
 class PluginGalleryGridHandler extends GridHandler
 {
@@ -83,7 +94,7 @@ class PluginGalleryGridHandler extends GridHandler
                 null,
                 null,
                 $pluginGalleryGridCellProvider,
-                ['width' => 50, 'alignment' => COLUMN_ALIGNMENT_LEFT]
+                ['width' => 50, 'alignment' => GridColumn::COLUMN_ALIGNMENT_LEFT]
             )
         );
 
@@ -105,10 +116,8 @@ class PluginGalleryGridHandler extends GridHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.PolicySet');
-        $rolePolicy = new PolicySet(COMBINING_PERMIT_OVERRIDES);
+        $rolePolicy = new PolicySet(PolicySet::COMBINING_PERMIT_OVERRIDES);
 
-        import('lib.pkp.classes.security.authorization.RoleBasedHandlerOperationPolicy');
         foreach ($roleAssignments as $role => $operations) {
             $rolePolicy->addPolicy(new RoleBasedHandlerOperationPolicy($request, $role, $operations));
         }
@@ -289,24 +298,23 @@ class PluginGalleryGridHandler extends GridHandler
                 throw new Exception('Unable to save plugin to local file!');
             }
         } catch (Exception $e) {
-            $notificationMgr->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
+            $notificationMgr->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
             return $request->redirectUrlJson($redirectUrl);
         }
 
         // Verify the plugin checksum.
         if (md5_file($destPath) !== $plugin->getReleaseMD5()) {
-            $notificationMgr->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => 'Incorrect MD5 checksum!']);
+            $notificationMgr->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => 'Incorrect MD5 checksum!']);
             unlink($destPath);
             return $request->redirectUrlJson($redirectUrl);
         }
 
         // Extract the plugin
-        import('lib.pkp.classes.plugins.PluginHelper');
         $pluginHelper = new PluginHelper();
         try {
             $pluginDir = $pluginHelper->extractPlugin($destPath, $plugin->getProduct() . '-' . $plugin->getVersion());
         } catch (Exception $e) {
-            $notificationMgr->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
+            $notificationMgr->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
             return $request->redirectUrlJson($redirectUrl);
         } finally {
             unlink($destPath);
@@ -321,11 +329,10 @@ class PluginGalleryGridHandler extends GridHandler
             }
 
             // Notify of success.
-            $notificationMgr->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => __('manager.plugins.upgradeSuccessful', ['versionString' => $pluginVersion->getVersionString(false)])]);
+            $notificationMgr->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => __('manager.plugins.upgradeSuccessful', ['versionString' => $pluginVersion->getVersionString(false)])]);
         } catch (Exception $e) {
-            $notificationMgr->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
+            $notificationMgr->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => $e->getMessage()]);
             if (!$isUpgrade) {
-                import('lib.pkp.classes.file.TemporaryFileManager');
                 $temporaryFileManager = new TemporaryFileManager();
                 $temporaryFileManager->rmtree($pluginDir);
             }

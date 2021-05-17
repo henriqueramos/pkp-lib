@@ -13,7 +13,12 @@
  * @brief Handle user selector grid requests.
  */
 
-import('lib.pkp.classes.controllers.grid.GridHandler');
+use PKP\controllers\grid\feature\CollapsibleGridFeature;
+use PKP\controllers\grid\feature\InfiniteScrollingFeature;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+use PKP\security\authorization\WorkflowStageAccessPolicy;
+
 import('lib.pkp.controllers.grid.users.userSelect.UserSelectGridCellProvider');
 
 class UserSelectGridHandler extends GridHandler
@@ -43,7 +48,6 @@ class UserSelectGridHandler extends GridHandler
     {
         $stageId = (int)$request->getUserVar('stageId');
 
-        import('lib.pkp.classes.security.authorization.WorkflowStageAccessPolicy');
         $this->addPolicy(new WorkflowStageAccessPolicy($request, $args, $roleAssignments, 'submissionId', $stageId));
 
         return parent::authorize($request, $args, $roleAssignments);
@@ -102,7 +106,7 @@ class UserSelectGridHandler extends GridHandler
                 null,
                 null,
                 $cellProvider,
-                ['alignment' => COLUMN_ALIGNMENT_LEFT,
+                ['alignment' => GridColumn::COLUMN_ALIGNMENT_LEFT,
                     'width' => 30
                 ]
             )
@@ -118,8 +122,6 @@ class UserSelectGridHandler extends GridHandler
      */
     public function initFeatures($request, $args)
     {
-        import('lib.pkp.classes.controllers.grid.feature.InfiniteScrollingFeature');
-        import('lib.pkp.classes.controllers.grid.feature.CollapsibleGridFeature');
         return [new InfiniteScrollingFeature('infiniteScrolling', $this->getItemsNumber()), new CollapsibleGridFeature()];
     }
 

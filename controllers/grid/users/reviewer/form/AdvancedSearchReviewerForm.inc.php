@@ -15,6 +15,12 @@
 
 import('lib.pkp.controllers.grid.users.reviewer.form.ReviewerForm');
 
+use APP\template\TemplateManager;
+use PKP\controllers\grid\users\reviewer\PKPReviewerGridHandler;
+use PKP\linkAction\LinkAction;
+
+use PKP\linkAction\request\AjaxAction;
+
 class AdvancedSearchReviewerForm extends ReviewerForm
 {
     /**
@@ -28,7 +34,7 @@ class AdvancedSearchReviewerForm extends ReviewerForm
         parent::__construct($submission, $reviewRound);
         $this->setTemplate('controllers/grid/users/reviewer/form/advancedSearchReviewerForm.tpl');
 
-        $this->addCheck(new FormValidator($this, 'reviewerId', 'required', 'editor.review.mustSelect'));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'reviewerId', 'required', 'editor.review.mustSelect'));
     }
 
     /**
@@ -57,7 +63,7 @@ class AdvancedSearchReviewerForm extends ReviewerForm
         $actionArgs = $request->getUserVars();
         $reviewRound = $this->getReviewRound();
         $actionArgs['reviewRoundId'] = $reviewRound->getId();
-        $actionArgs['selectionType'] = REVIEWER_SELECT_ADVANCED_SEARCH;
+        $actionArgs['selectionType'] = PKPReviewerGridHandler::REVIEWER_SELECT_ADVANCED_SEARCH;
         // but change the selectionType for each action
         $advancedSearchAction = new LinkAction(
             'advancedSearch',
@@ -131,7 +137,7 @@ class AdvancedSearchReviewerForm extends ReviewerForm
 
         // Only add actions to forms where user can operate.
         if (array_intersect($this->getUserRoles(), [ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR])) {
-            $actionArgs['selectionType'] = REVIEWER_SELECT_CREATE;
+            $actionArgs['selectionType'] = PKPReviewerGridHandler::REVIEWER_SELECT_CREATE;
             // but change the selectionType for each action
             $advancedSearchAction = new LinkAction(
                 'selectCreate',
@@ -141,7 +147,7 @@ class AdvancedSearchReviewerForm extends ReviewerForm
             );
 
             $this->setReviewerFormAction($advancedSearchAction);
-            $actionArgs['selectionType'] = REVIEWER_SELECT_ENROLL_EXISTING;
+            $actionArgs['selectionType'] = PKPReviewerGridHandler::REVIEWER_SELECT_ENROLL_EXISTING;
             // but change the selectionType for each action
             $advancedSearchAction = new LinkAction(
                 'enrolExisting',

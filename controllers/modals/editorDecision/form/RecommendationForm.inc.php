@@ -13,13 +13,17 @@
  * @brief Editor recommendation form.
  */
 
+use APP\notification\Notification;
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use APP\workflow\EditorDecisionActionsManager;
+use PKP\form\Form;
 use PKP\log\SubmissionEmailLogEntry;
+
 use PKP\mail\SubmissionMailTemplate;
-
-import('lib.pkp.classes.form.Form');
-
-// Define review round and review stage id constants.
-import('lib.pkp.classes.submission.reviewRound.ReviewRound');
+use PKP\notification\PKPNotification;
+use PKP\submission\action\EditorAction;
+use PKP\submission\reviewRound\ReviewRound;
 
 class RecommendationForm extends Form
 {
@@ -47,8 +51,8 @@ class RecommendationForm extends Form
         $this->_reviewRound = $reviewRound;
 
         // Validation checks for this form
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     //
@@ -181,7 +185,6 @@ class RecommendationForm extends Form
         $recommendation = $this->getData('recommendation');
 
         // Record the recommendation
-        import('lib.pkp.classes.submission.action.EditorAction');
         $editorAction = new EditorAction();
         // Get editor action labels needed for the recording
         $recommendationOptions = (new EditorDecisionActionsManager())->getRecommendationOptions($this->getStageId());
@@ -220,9 +223,8 @@ class RecommendationForm extends Form
             ]);
             if (!$this->getData('skipEmail')) {
                 if (!$email->send($request)) {
-                    import('classes.notification.NotificationManager');
                     $notificationMgr = new NotificationManager();
-                    $notificationMgr->createTrivialNotification($request->getUser()->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
+                    $notificationMgr->createTrivialNotification($request->getUser()->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
                 }
             }
 
@@ -269,11 +271,11 @@ class RecommendationForm extends Form
                     $notificationMgr->createNotification(
                         $request,
                         $discussionParticipantsId,
-                        NOTIFICATION_TYPE_NEW_QUERY,
+                        PKPNotification::NOTIFICATION_TYPE_NEW_QUERY,
                         $request->getContext()->getId(),
                         ASSOC_TYPE_QUERY,
                         $query->getId(),
-                        NOTIFICATION_LEVEL_TASK
+                        Notification::NOTIFICATION_LEVEL_TASK
                     );
                 }
             }

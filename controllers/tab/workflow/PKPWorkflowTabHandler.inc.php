@@ -13,13 +13,17 @@
  * @brief Handle AJAX operations for workflow tabs.
  */
 
-// Import the base Handler.
-import('classes.handler.Handler');
-
-// Access decision actions constants.
-import('classes.workflow.EditorDecisionActionsManager');
+use APP\handler\Handler;
+use APP\notification\Notification;
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use APP\workflow\EditorDecisionActionsManager;
 
 use PKP\core\JSONMessage;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\WorkflowStageAccessPolicy;
 
 abstract class PKPWorkflowTabHandler extends Handler
 {
@@ -42,7 +46,6 @@ abstract class PKPWorkflowTabHandler extends Handler
     public function authorize($request, &$args, $roleAssignments)
     {
         // Authorize stage id.
-        import('lib.pkp.classes.security.authorization.WorkflowStageAccessPolicy');
         $this->addPolicy(new WorkflowStageAccessPolicy($request, $args, $roleAssignments, 'submissionId', $this->_identifyStageId($request), PKPApplication::WORKFLOW_TYPE_EDITORIAL));
 
         return parent::authorize($request, $args, $roleAssignments);
@@ -102,7 +105,6 @@ abstract class PKPWorkflowTabHandler extends Handler
                 if ($submission->getStageId() == $selectedStageId && count($reviewRoundsArray) > 0) {
                     $dispatcher = $request->getDispatcher();
 
-                    import('lib.pkp.classes.linkAction.request.AjaxModal');
                     $newRoundAction = new LinkAction(
                         'newRound',
                         new AjaxModal(
@@ -115,7 +117,7 @@ abstract class PKPWorkflowTabHandler extends Handler
                                 null,
                                 [
                                     'submissionId' => $submission->getId(),
-                                    'decision' => SUBMISSION_EDITOR_DECISION_NEW_ROUND,
+                                    'decision' => EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_NEW_ROUND,
                                     'stageId' => $selectedStageId,
                                     'reviewRoundId' => $lastReviewRoundId
                                 ]
@@ -134,10 +136,10 @@ abstract class PKPWorkflowTabHandler extends Handler
             case WORKFLOW_STAGE_ID_EDITING:
                 // Assign banner notifications to the template.
                 $notificationRequestOptions = [
-                    NOTIFICATION_LEVEL_NORMAL => [
-                        NOTIFICATION_TYPE_ASSIGN_COPYEDITOR => [ASSOC_TYPE_SUBMISSION, $submission->getId()],
-                        NOTIFICATION_TYPE_AWAITING_COPYEDITS => [ASSOC_TYPE_SUBMISSION, $submission->getId()]],
-                    NOTIFICATION_LEVEL_TRIVIAL => []
+                    Notification::NOTIFICATION_LEVEL_NORMAL => [
+                        PKPNotification::NOTIFICATION_TYPE_ASSIGN_COPYEDITOR => [ASSOC_TYPE_SUBMISSION, $submission->getId()],
+                        PKPNotification::NOTIFICATION_TYPE_AWAITING_COPYEDITS => [ASSOC_TYPE_SUBMISSION, $submission->getId()]],
+                    Notification::NOTIFICATION_LEVEL_TRIVIAL => []
                 ];
                 $templateMgr->assign('editingNotificationRequestOptions', $notificationRequestOptions);
                 return $templateMgr->fetchJson('controllers/tab/workflow/editorial.tpl');
@@ -179,10 +181,10 @@ abstract class PKPWorkflowTabHandler extends Handler
 
         // Define the workflow notification options.
         $notificationRequestOptions = [
-            NOTIFICATION_LEVEL_TASK => [
+            Notification::NOTIFICATION_LEVEL_TASK => [
                 $editorAssignmentNotificationType => [ASSOC_TYPE_SUBMISSION, $submission->getId()]
             ],
-            NOTIFICATION_LEVEL_TRIVIAL => []
+            Notification::NOTIFICATION_LEVEL_TRIVIAL => []
         ];
 
         $templateMgr->assign('workflowNotificationRequestOptions', $notificationRequestOptions);
@@ -199,13 +201,13 @@ abstract class PKPWorkflowTabHandler extends Handler
     {
         switch ($stageId) {
             case WORKFLOW_STAGE_ID_SUBMISSION:
-                return NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_SUBMISSION;
+                return PKPNotification::NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_SUBMISSION;
             case WORKFLOW_STAGE_ID_EXTERNAL_REVIEW:
-                return NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_EXTERNAL_REVIEW;
+                return PKPNotification::NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_EXTERNAL_REVIEW;
             case WORKFLOW_STAGE_ID_EDITING:
-                return NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_EDITING;
+                return PKPNotification::NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_EDITING;
             case WORKFLOW_STAGE_ID_PRODUCTION:
-                return NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_PRODUCTION;
+                return PKPNotification::NOTIFICATION_TYPE_EDITOR_ASSIGNMENT_PRODUCTION;
         }
         return null;
     }

@@ -13,15 +13,19 @@
  * @brief Handle requests for the submssion workflow.
  */
 
-import('classes.handler.Handler');
-import('lib.pkp.classes.workflow.WorkflowStageDAO');
-
-
-// import UI base classes
-import('lib.pkp.classes.linkAction.LinkAction');
-import('lib.pkp.classes.linkAction.request.AjaxModal');
+use APP\handler\Handler;
+use APP\template\TemplateManager;
+use APP\workflow\EditorDecisionActionsManager;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\internal\SubmissionRequiredPolicy;
+use PKP\security\authorization\internal\UserAccessibleWorkflowStageRequiredPolicy;
+use PKP\security\authorization\WorkflowStageAccessPolicy;
 
 use PKP\services\PKPSchemaService;
+use PKP\submission\PKPSubmission;
+use PKP\workflow\WorkflowStageDAO;
 
 abstract class PKPWorkflowHandler extends Handler
 {
@@ -41,18 +45,15 @@ abstract class PKPWorkflowHandler extends Handler
 
         if ($operation == 'access') {
             // Authorize requested submission.
-            import('lib.pkp.classes.security.authorization.internal.SubmissionRequiredPolicy');
             $this->addPolicy(new SubmissionRequiredPolicy($request, $args, 'submissionId'));
 
             // This policy will deny access if user has no accessible workflow stage.
             // Otherwise it will build an authorized object with all accessible
             // workflow stages and authorize user operation access.
-            import('lib.pkp.classes.security.authorization.internal.UserAccessibleWorkflowStageRequiredPolicy');
             $this->addPolicy(new UserAccessibleWorkflowStageRequiredPolicy($request, PKPApplication::WORKFLOW_TYPE_EDITORIAL));
 
             $this->markRoleAssignmentsChecked();
         } else {
-            import('lib.pkp.classes.security.authorization.WorkflowStageAccessPolicy');
             $this->addPolicy(new WorkflowStageAccessPolicy($request, $args, $roleAssignments, 'submissionId', $this->identifyStageId($request, $args), PKPApplication::WORKFLOW_TYPE_EDITORIAL));
         }
 
@@ -256,18 +257,17 @@ abstract class PKPWorkflowHandler extends Handler
         $titleAbstractForm = new PKP\components\forms\publication\PKPTitleAbstractForm($latestPublicationApiUrl, $locales, $latestPublication);
 
         // Import constants
-        import('classes.submission.Submission');
         import('classes.components.forms.publication.PublishForm');
 
         $templateMgr->setConstants([
-            'STATUS_QUEUED',
-            'STATUS_PUBLISHED',
-            'STATUS_DECLINED',
-            'STATUS_SCHEDULED',
-            'FORM_CITATIONS',
-            'FORM_PUBLICATION_LICENSE',
-            'FORM_PUBLISH',
-            'FORM_TITLE_ABSTRACT',
+            'STATUS_QUEUED' => PKPSubmission::STATUS_QUEUED,
+            'STATUS_PUBLISHED' => PKPSubmission::STATUS_PUBLISHED,
+            'STATUS_DECLINED' => PKPSubmission::STATUS_DECLINED,
+            'STATUS_SCHEDULED' => PKPSubmission::STATUS_SCHEDULED,
+            'FORM_CITATIONS' => FORM_CITATIONS,
+            'FORM_PUBLICATION_LICENSE' => FORM_PUBLICATION_LICENSE,
+            'FORM_PUBLISH' => FORM_PUBLISH,
+            'FORM_TITLE_ABSTRACT' => FORM_TITLE_ABSTRACT,
         ]);
 
         // Get the submission props without the full publication details. We'll
@@ -376,7 +376,9 @@ abstract class PKPWorkflowHandler extends Handler
         if ($metadataEnabled || in_array('publication', (array) $submissionContext->getData('enablePublisherId'))) {
             $vocabSuggestionUrlBase = $request->getDispatcher()->url($request, PKPApplication::ROUTE_API, $submissionContext->getData('urlPath'), 'vocabs', null, null, ['vocab' => '__vocab__']);
             $metadataForm = new PKP\components\forms\publication\PKPMetadataForm($latestPublicationApiUrl, $locales, $latestPublication, $submissionContext, $vocabSuggestionUrlBase);
-            $templateMgr->setConstants(['FORM_METADATA']);
+            $templateMgr->setConstants([
+                'FORM_METADATA' => FORM_METADATA,
+            ]);
             $state['components'][FORM_METADATA] = $metadataForm->getConfig();
             $state['publicationFormIds'][] = FORM_METADATA;
         }
@@ -392,7 +394,9 @@ abstract class PKPWorkflowHandler extends Handler
         }
         if ($identifiersEnabled) {
             $identifiersForm = new PKP\components\forms\publication\PKPPublicationIdentifiersForm($latestPublicationApiUrl, $locales, $latestPublication, $submissionContext);
-            $templateMgr->setConstants(['FORM_PUBLICATION_IDENTIFIERS']);
+            $templateMgr->setConstants([
+                'FORM_PUBLICATION_IDENTIFIERS' => FORM_PUBLICATION_IDENTIFIERS,
+            ]);
             $state['components'][FORM_PUBLICATION_IDENTIFIERS] = $identifiersForm->getConfig();
             $state['publicationFormIds'][] = FORM_PUBLICATION_IDENTIFIERS;
         }
@@ -412,7 +416,7 @@ abstract class PKPWorkflowHandler extends Handler
                 $submission->getShortAuthorString(),
                 $submission->getLocalizedTitle()
             ]),
-            'pageWidth' => PAGE_WIDTH_WIDE,
+            'pageWidth' => TemplateManager::PAGE_WIDTH_WIDE,
             'requestedStageId' => $requestedStageId,
             'submission' => $submission,
             'workflowStages' => $workflowStages,
@@ -554,12 +558,10 @@ abstract class PKPWorkflowHandler extends Handler
             }
         }
 
-        import('lib.pkp.classes.linkAction.request.AjaxModal');
         $editorActions = [];
         $editorDecisions = [];
         $lastRecommendation = $allRecommendations = null;
         if (!empty($editorsStageAssignments) && (!$reviewRoundId || ($lastReviewRound && $reviewRoundId == $lastReviewRound->getId()))) {
-            import('classes.workflow.EditorDecisionActionsManager');
             $editDecisionDao = DAORegistry::getDAO('EditDecisionDAO'); /** @var EditDecisionDAO $editDecisionDao */
             $recommendationOptions = (new EditorDecisionActionsManager())->getRecommendationOptions($stageId);
             // If this is a review stage and the user has "recommend only role"
@@ -657,7 +659,7 @@ abstract class PKPWorkflowHandler extends Handler
         $hasSubmissionPassedThisStage = $submission->getStageId() > $stageId;
         $lastDecision = null;
         switch ($submission->getStatus()) {
-            case STATUS_QUEUED:
+            case PKPSubmission::STATUS_QUEUED:
                 switch ($stageId) {
                     case WORKFLOW_STAGE_ID_SUBMISSION:
                         if ($hasSubmissionPassedThisStage) {
@@ -679,10 +681,10 @@ abstract class PKPWorkflowHandler extends Handler
                         break;
                 }
                 break;
-            case STATUS_PUBLISHED:
+            case PKPSubmission::STATUS_PUBLISHED:
                 $lastDecision = 'editor.submission.workflowDecision.submission.published';
                 break;
-            case STATUS_DECLINED:
+            case PKPSubmission::STATUS_DECLINED:
                 $lastDecision = 'editor.submission.workflowDecision.submission.declined';
                 break;
         }
@@ -807,7 +809,7 @@ abstract class PKPWorkflowHandler extends Handler
 
         // check for more specific notifications on those stages that have them.
         if ($stageId == WORKFLOW_STAGE_ID_PRODUCTION) {
-            $submissionApprovalNotification = $notificationDao->getByAssoc(ASSOC_TYPE_SUBMISSION, $submission->getId(), null, NOTIFICATION_TYPE_APPROVE_SUBMISSION, $contextId);
+            $submissionApprovalNotification = $notificationDao->getByAssoc(ASSOC_TYPE_SUBMISSION, $submission->getId(), null, PKPNotification::NOTIFICATION_TYPE_APPROVE_SUBMISSION, $contextId);
             if ($submissionApprovalNotification->next()) {
                 return true;
             }

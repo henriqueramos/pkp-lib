@@ -14,7 +14,10 @@
  *  usernav, and CSS.
  */
 
-import('classes.handler.Handler');
+use APP\handler\Handler;
+
+use APP\template\TemplateManager;
+use PKP\security\authorization\PKPSiteAccessPolicy;
 
 class PageHandler extends Handler
 {
@@ -26,11 +29,10 @@ class PageHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.PKPSiteAccessPolicy');
         $this->addPolicy(new PKPSiteAccessPolicy(
             $request,
             ['tasks', 'css'],
-            SITE_ACCESS_ALL_ROLES
+            PKPSiteAccessPolicy::SITE_ACCESS_ALL_ROLES
         ));
 
         $this->setEnforceRestrictedSite(false);

@@ -13,9 +13,21 @@
  * @brief Abstract class for import/export plugins
  */
 
-import('lib.pkp.classes.plugins.Plugin');
+namespace PKP\plugins;
 
+use APP\core\Services;
+use APP\i18n\AppLocale;
+use APP\template\TemplateManager;
+use Exception;
+use PKP\config\Config;
 use PKP\core\JSONMessage;
+use PKP\core\PKPApplication;
+
+use PKP\db\DAORegistry;
+use PKP\file\FileManager;
+use PKP\linkAction\LinkAction;
+
+use PKP\linkAction\request\RedirectAction;
 
 abstract class ImportExportPlugin extends Plugin
 {
@@ -46,7 +58,6 @@ abstract class ImportExportPlugin extends Plugin
     public function getActions($request, $actionArgs)
     {
         $dispatcher = $request->getDispatcher();
-        import('lib.pkp.classes.linkAction.request.RedirectAction');
         return array_merge(
             [
                 new LinkAction(
@@ -250,7 +261,7 @@ abstract class ImportExportPlugin extends Plugin
 
         $submissions = [];
         foreach ($submissionIds as $submissionId) {
-            /** @var APP\Services\SubmissionService $submissionService */
+            /** @var APP\services\SubmissionService $submissionService */
             $submissionService = Services::get('submission');
             $submission = $submissionService->get($submissionId);
 
@@ -261,34 +272,6 @@ abstract class ImportExportPlugin extends Plugin
 
         $deployment->export($filter, $submissions, $opts);
     }
-
-    /**
-     * Define the appropriate import filter given the imported XML file path
-     *
-     * @param $xmlFile string
-     *
-     * @return array Containing the filter and the xmlString of the imported file
-     */
-    abstract public function getImportFilter($xmlFile);
-
-    /**
-     * Define the appropriate export filter given the export operation
-     *
-     * @param $exportType string
-     *
-     * @return string
-     */
-    abstract public function getExportFilter($exportType);
-
-    /**
-     * Get the application specific deployment object
-     *
-     * @param $context Context
-     * @param $user User
-     *
-     * @return PKPImportExportDeployment
-     */
-    abstract public function getAppSpecificDeployment($context, $user);
 
     /**
      * Save the export result as an XML
@@ -432,7 +415,6 @@ abstract class ImportExportPlugin extends Plugin
      */
     public function downloadExportedFile($exportFileName)
     {
-        import('lib.pkp.classes.file.FileManager');
         $fileManager = new FileManager();
         $fileManager->downloadByPath($exportFileName);
         $fileManager->deleteByPath($exportFileName);
@@ -449,11 +431,14 @@ abstract class ImportExportPlugin extends Plugin
      */
     public function writeExportedFile($filename, $fileContent, $context)
     {
-        import('lib.pkp.classes.file.FileManager');
         $fileManager = new FileManager();
         $exportFileName = $this->getExportFileName($this->getExportPath(), $filename, $context, '.xml');
         $fileManager->writeFile($exportFileName, $fileContent);
 
         return $exportFileName;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\plugins\ImportExportPlugin', '\ImportExportPlugin');
 }

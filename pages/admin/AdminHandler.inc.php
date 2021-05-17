@@ -13,11 +13,15 @@
  * @brief Handle requests for site administration functions.
  */
 
-import('classes.handler.Handler');
-
 use APP\core\Services;
+use APP\file\PublicFileManager;
 
+use APP\handler\Handler;
+use APP\template\TemplateManager;
 use Illuminate\Support\Facades\DB;
+use PKP\scheduledTask\ScheduledTaskHelper;
+
+use PKP\security\authorization\PKPSiteAccessPolicy;
 
 class AdminHandler extends Handler
 {
@@ -54,7 +58,6 @@ class AdminHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.PKPSiteAccessPolicy');
         $this->addPolicy(new PKPSiteAccessPolicy($request, null, $roleAssignments));
         $returner = parent::authorize($request, $args, $roleAssignments);
 
@@ -169,7 +172,6 @@ class AdminHandler extends Handler
         $themeApiUrl = $dispatcher->url($request, PKPApplication::ROUTE_API, CONTEXT_ID_ALL, 'site/theme');
         $temporaryFileApiUrl = $dispatcher->url($request, PKPApplication::ROUTE_API, CONTEXT_ID_ALL, 'temporaryFiles');
 
-        import('classes.file.PublicFileManager');
         $publicFileManager = new PublicFileManager();
         $baseUrl = $request->getBaseUrl() . '/' . $publicFileManager->getSiteFilesPath();
 
@@ -445,7 +447,6 @@ class AdminHandler extends Handler
         $request = Application::get()->getRequest();
 
         $file = basename($request->getUserVar('file'));
-        import('lib.pkp.classes.scheduledTask.ScheduledTaskHelper');
         ScheduledTaskHelper::downloadExecutionLog($file);
     }
 
@@ -454,7 +455,6 @@ class AdminHandler extends Handler
      */
     public function clearScheduledTaskLogFiles()
     {
-        import('lib.pkp.classes.scheduledTask.ScheduledTaskHelper');
         ScheduledTaskHelper::clearExecutionLogs();
 
         $request = Application::get()->getRequest();

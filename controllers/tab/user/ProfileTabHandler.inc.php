@@ -17,9 +17,12 @@
  * @brief Handle requests for profile tab operations.
  */
 
-import('classes.handler.Handler');
+use APP\handler\Handler;
+use APP\notification\form\NotificationSettingsForm;
 
+use APP\notification\NotificationManager;
 use PKP\core\JSONMessage;
+use PKP\security\authorization\UserRequiredPolicy;
 
 class ProfileTabHandler extends Handler
 {
@@ -32,7 +35,6 @@ class ProfileTabHandler extends Handler
     public function authorize($request, &$args, $roleAssignments)
     {
         // User must be logged in
-        import('lib.pkp.classes.security.authorization.UserRequiredPolicy');
         $this->addPolicy(new UserRequiredPolicy($request));
 
         return parent::authorize($request, $args, $roleAssignments);
@@ -331,7 +333,6 @@ class ProfileTabHandler extends Handler
         $this->setupTemplate($request);
 
         $user = $request->getUser();
-        import('classes.notification.form.NotificationSettingsForm');
         $notificationSettingsForm = new NotificationSettingsForm();
         return new JSONMessage(true, $notificationSettingsForm->fetch($request));
     }
@@ -347,8 +348,6 @@ class ProfileTabHandler extends Handler
     public function saveNotificationSettings($args, $request)
     {
         $this->setupTemplate($request);
-
-        import('classes.notification.form.NotificationSettingsForm');
 
         $notificationSettingsForm = new NotificationSettingsForm();
         $notificationSettingsForm->readInputData();

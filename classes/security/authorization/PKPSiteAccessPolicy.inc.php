@@ -12,13 +12,14 @@
  * @brief Class to that makes sure that a user is logged in.
  */
 
+namespace PKP\security\authorization;
 
-define('SITE_ACCESS_ALL_ROLES', 0x01);
-
-import('lib.pkp.classes.security.authorization.PolicySet');
+use APP\core\Application;
 
 class PKPSiteAccessPolicy extends PolicySet
 {
+    public const SITE_ACCESS_ALL_ROLES = 1;
+
     /**
      * Constructor
      *
@@ -31,14 +32,12 @@ class PKPSiteAccessPolicy extends PolicySet
     public function __construct($request, $operations, $roleAssignments, $message = 'user.authorization.loginRequired')
     {
         parent::__construct();
-        $siteRolePolicy = new PolicySet(COMBINING_PERMIT_OVERRIDES);
+        $siteRolePolicy = new PolicySet(PolicySet::COMBINING_PERMIT_OVERRIDES);
         if (is_array($roleAssignments)) {
-            import('lib.pkp.classes.security.authorization.RoleBasedHandlerOperationPolicy');
             foreach ($roleAssignments as $role => $operations) {
                 $siteRolePolicy->addPolicy(new RoleBasedHandlerOperationPolicy($request, $role, $operations));
             }
-        } elseif ($roleAssignments === SITE_ACCESS_ALL_ROLES) {
-            import('lib.pkp.classes.security.authorization.PKPPublicAccessPolicy');
+        } elseif ($roleAssignments === self::SITE_ACCESS_ALL_ROLES) {
             $siteRolePolicy->addPolicy(new PKPPublicAccessPolicy($request, $operations));
         } else {
             throw new Exception('Invalid role assignments!');
@@ -58,11 +57,16 @@ class PKPSiteAccessPolicy extends PolicySet
         $request = Application::get()->getRequest();
         $user = $request->getUser();
 
-        if (!is_a($user, 'User')) {
-            return AUTHORIZATION_DENY;
+        if (!$user instanceof \PKP\user\User) {
+            return AuthorizationPolicy::AUTHORIZATION_DENY;
         }
 
         // Execute handler operation checks.
         return parent::effect();
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\security\authorization\PKPSiteAccessPolicy', '\PKPSiteAccessPolicy');
+    define('SITE_ACCESS_ALL_ROLES', \PKPSiteAccessPolicy::SITE_ACCESS_ALL_ROLES);
 }

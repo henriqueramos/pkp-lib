@@ -13,9 +13,12 @@
  * @brief User XML import/export plugin
  */
 
-import('lib.pkp.classes.plugins.ImportExportPlugin');
-
+use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
+use PKP\file\FileManager;
+use PKP\file\TemporaryFileManager;
+
+use PKP\plugins\ImportExportPlugin;
 
 abstract class PKPUserImportExportPlugin extends ImportExportPlugin
 {
@@ -93,7 +96,6 @@ abstract class PKPUserImportExportPlugin extends ImportExportPlugin
                 break;
             case 'uploadImportXML':
                 $user = $request->getUser();
-                import('lib.pkp.classes.file.TemporaryFileManager');
                 $temporaryFileManager = new TemporaryFileManager();
                 $temporaryFile = $temporaryFileManager->handleUpload('uploadedFile', $user->getId());
                 if ($temporaryFile) {
@@ -154,7 +156,6 @@ abstract class PKPUserImportExportPlugin extends ImportExportPlugin
                     $request->getUser(),
                     $filter
                 );
-                import('lib.pkp.classes.file.FileManager');
                 $fileManager = new FileManager();
                 $exportFileName = $this->getExportFileName($this->getExportPath(), 'users', $context, '.xml');
                 $fileManager->writeFile($exportFileName, $exportXml);
@@ -169,7 +170,6 @@ abstract class PKPUserImportExportPlugin extends ImportExportPlugin
                     $request->getUser(),
                     $filter
                 );
-                import('lib.pkp.classes.file.FileManager');
                 $fileManager = new FileManager();
                 $exportFileName = $this->getExportFileName($this->getExportPath(), 'users', $context, '.xml');
                 $fileManager->writeFile($exportFileName, $exportXml);
@@ -286,29 +286,5 @@ abstract class PKPUserImportExportPlugin extends ImportExportPlugin
         $filter->setDeployment(new PKPUserImportExportDeployment($context, $user));
 
         return $filter;
-    }
-
-    /**
-     * @see ImportExportPlugin::getImportFilter
-     */
-    public function getImportFilter($xmlFile)
-    {
-        throw new BadMethodCallException();
-    }
-
-    /**
-     * @see ImportExportPlugin::getExportFilter
-     */
-    public function getExportFilter($exportType)
-    {
-        throw new BadMethodCallException();
-    }
-
-    /**
-     * @see ImportExportPlugin::getAppSpecificDeployment
-     */
-    public function getAppSpecificDeployment($context, $user)
-    {
-        throw new BadMethodCallException();
     }
 }

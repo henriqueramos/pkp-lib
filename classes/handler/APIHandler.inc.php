@@ -12,14 +12,25 @@
  *
  * @brief Base request API handler
  */
-AppLocale::requireComponents(LOCALE_COMPONENT_PKP_API, LOCALE_COMPONENT_APP_API);
-import('lib.pkp.classes.handler.PKPHandler');
 
+namespace PKP\handler;
+
+use APP\core\Application;
 use APP\core\Services;
+use APP\i18n\AppLocale;
+use PKP\config\Config;
+use PKP\core\APIResponse;
+use PKP\plugins\HookRegistry;
+use PKP\security\authorization\internal\ApiAuthorizationMiddleware;
+use PKP\security\authorization\internal\ApiCsrfMiddleware;
 
-import('lib.pkp.classes.core.APIResponse');
+use PKP\security\authorization\internal\ApiTokenDecodingMiddleware;
+use PKP\statistics\PKPStatisticsHelper;
+use PKP\validation\ValidatorFactory;
 
 use Slim\App;
+
+AppLocale::requireComponents(LOCALE_COMPONENT_PKP_API, LOCALE_COMPONENT_APP_API);
 
 class APIHandler extends PKPHandler
 {
@@ -40,9 +51,6 @@ class APIHandler extends PKPHandler
     public function __construct()
     {
         parent::__construct();
-        import('lib.pkp.classes.security.authorization.internal.ApiAuthorizationMiddleware');
-        import('lib.pkp.classes.security.authorization.internal.ApiTokenDecodingMiddleware');
-        import('lib.pkp.classes.security.authorization.internal.ApiCsrfMiddleware');
         $this->_app = new \Slim\App([
             // Load custom response handler
             'response' => function ($c) {
@@ -406,13 +414,12 @@ class APIHandler extends PKPHandler
      */
     protected function _validateStatDates($params, $dateStartParam = 'dateStart', $dateEndParam = 'dateEnd')
     {
-        import('lib.pkp.classes.validation.ValidatorFactory');
-        $validator = \ValidatorFactory::make(
+        $validator = ValidatorFactory::make(
             $params,
             [
                 $dateStartParam => [
                     'date_format:Y-m-d',
-                    'after_or_equal:' . STATISTICS_EARLIEST_DATE,
+                    'after_or_equal:' . PKPStatisticsHelper::STATISTICS_EARLIEST_DATE,
                     'before_or_equal:' . $dateEndParam,
                 ],
                 $dateEndParam => [
@@ -450,4 +457,8 @@ class APIHandler extends PKPHandler
 
         return true;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\handler\APIHandler', '\APIHandler');
 }

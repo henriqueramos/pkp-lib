@@ -13,10 +13,24 @@
  * @brief Handle requests for editors to make a decision
  */
 
-import('classes.handler.Handler');
+namespace PKP\controllers\modals\editorDecision;
 
+use APP\handler\Handler;
+use APP\i18n\AppLocale;
+use APP\notification\NotificationManager;
+use APP\workflow\EditorDecisionActionsManager;
 use PKP\core\JSONMessage;
+use PKP\core\PKPApplication;
+use PKP\core\PKPString;
+
+use PKP\db\DAORegistry;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\internal\ReviewRoundRequiredPolicy;
 use PKP\submission\SubmissionComment;
+
+// FIXME: Add namespacing
+import('lib.pkp.controllers.modals.editorDecision.form.RecommendationForm');
+use RecommendationForm;
 
 class PKPEditorDecisionHandler extends Handler
 {
@@ -30,7 +44,6 @@ class PKPEditorDecisionHandler extends Handler
     {
         // Some operations need a review round id in request.
         $reviewRoundOps = $this->_getReviewRoundOps();
-        import('lib.pkp.classes.security.authorization.internal.ReviewRoundRequiredPolicy');
         $this->addPolicy(new ReviewRoundRequiredPolicy($request, $args, 'reviewRoundId', $reviewRoundOps));
 
         if (!parent::authorize($request, $args, $roleAssignments)) {
@@ -113,7 +126,7 @@ class PKPEditorDecisionHandler extends Handler
             $request,
             'InitiateExternalReviewForm',
             $workflowStageDao::WORKFLOW_STAGE_PATH_EXTERNAL_REVIEW,
-            SUBMISSION_EDITOR_DECISION_EXTERNAL_REVIEW
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_EXTERNAL_REVIEW
         );
     }
 
@@ -329,12 +342,12 @@ class PKPEditorDecisionHandler extends Handler
                         if ($reviewFormResponse) {
                             $possibleResponses = $reviewFormElement->getLocalizedPossibleResponses();
                             // See issue #2437.
-                            if (in_array($reviewFormElement->getElementType(), [REVIEW_FORM_ELEMENT_TYPE_CHECKBOXES, REVIEW_FORM_ELEMENT_TYPE_RADIO_BUTTONS])) {
+                            if (in_array($reviewFormElement->getElementType(), [$reviewFormElement::REVIEW_FORM_ELEMENT_TYPE_CHECKBOXES, $reviewFormElement::REVIEW_FORM_ELEMENT_TYPE_RADIO_BUTTONS])) {
                                 ksort($possibleResponses);
                                 $possibleResponses = array_values($possibleResponses);
                             }
                             if (in_array($reviewFormElement->getElementType(), $reviewFormElement->getMultipleResponsesElementTypes())) {
-                                if ($reviewFormElement->getElementType() == REVIEW_FORM_ELEMENT_TYPE_CHECKBOXES) {
+                                if ($reviewFormElement->getElementType() == $reviewFormElement::REVIEW_FORM_ELEMENT_TYPE_CHECKBOXES) {
                                     $body .= '<ul>';
                                     foreach ($reviewFormResponse->getValue() as $value) {
                                         $body .= '<li>' . PKPString::stripUnsafeHtml($possibleResponses[$value]) . '</li>';
@@ -357,7 +370,7 @@ class PKPEditorDecisionHandler extends Handler
         // Notify the user.
         $notificationMgr = new NotificationManager();
         $user = $request->getUser();
-        $notificationMgr->createTrivialNotification($user->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => __('editor.review.reviewsAdded')]);
+        $notificationMgr->createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => __('editor.review.reviewsAdded')]);
 
         return new JSONMessage(true, empty($body) ? __('editor.review.noReviews') : $body);
     }
@@ -380,7 +393,6 @@ class PKPEditorDecisionHandler extends Handler
         assert(is_a($reviewRound, 'ReviewRound'));
 
         // Form handling
-        import('lib.pkp.controllers.modals.editorDecision.form.RecommendationForm');
         $editorRecommendationForm = new RecommendationForm($submission, $stageId, $reviewRound);
         $editorRecommendationForm->initData();
         return new JSONMessage(true, $editorRecommendationForm->fetch($request));
@@ -404,7 +416,6 @@ class PKPEditorDecisionHandler extends Handler
         assert(is_a($reviewRound, 'ReviewRound'));
 
         // Form handling
-        import('lib.pkp.controllers.modals.editorDecision.form.RecommendationForm');
         $editorRecommendationForm = new RecommendationForm($submission, $stageId, $reviewRound);
         $editorRecommendationForm->readInputData();
         if ($editorRecommendationForm->validate()) {
@@ -560,12 +571,15 @@ class PKPEditorDecisionHandler extends Handler
 
             // Update submission notifications
             $submissionNotificationsToUpdate = [
-                SUBMISSION_EDITOR_DECISION_ACCEPT => [NOTIFICATION_TYPE_ASSIGN_COPYEDITOR,	NOTIFICATION_TYPE_AWAITING_COPYEDITS],
-                SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION => [
-                    NOTIFICATION_TYPE_ASSIGN_COPYEDITOR,
-                    NOTIFICATION_TYPE_AWAITING_COPYEDITS,
-                    NOTIFICATION_TYPE_ASSIGN_PRODUCTIONUSER,
-                    NOTIFICATION_TYPE_AWAITING_REPRESENTATIONS,
+                EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_ACCEPT => [
+                    PKPNotification::NOTIFICATION_TYPE_ASSIGN_COPYEDITOR,
+                    PKPNotification::NOTIFICATION_TYPE_AWAITING_COPYEDITS
+                ],
+                EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION => [
+                    PKPNotification::NOTIFICATION_TYPE_ASSIGN_COPYEDITOR,
+                    PKPNotification::NOTIFICATION_TYPE_AWAITING_COPYEDITS,
+                    PKPNotification::NOTIFICATION_TYPE_ASSIGN_PRODUCTIONUSER,
+                    PKPNotification::NOTIFICATION_TYPE_AWAITING_REPRESENTATIONS,
                 ],
             ];
             $notificationMgr = new NotificationManager();
@@ -584,7 +598,7 @@ class PKPEditorDecisionHandler extends Handler
                 $redirectUrl = $dispatcher->url($request, PKPApplication::ROUTE_PAGE, null, 'workflow', $redirectOp, [$submission->getId()]);
                 return $request->redirectUrlJson($redirectUrl);
             } else {
-                if (in_array($decision, [SUBMISSION_EDITOR_DECISION_DECLINE, SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE, SUBMISSION_EDITOR_DECISION_REVERT_DECLINE])) {
+                if (in_array($decision, [EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_DECLINE, EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE, EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_REVERT_DECLINE])) {
                     $dispatcher = $this->getDispatcher();
                     $redirectUrl = $dispatcher->url($request, PKPApplication::ROUTE_PAGE, null, 'workflow', 'access', [$submission->getId()]);
                     return $request->redirectUrlJson($redirectUrl);
@@ -617,4 +631,8 @@ class PKPEditorDecisionHandler extends Handler
     {
         assert(false); // Subclasses to override
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\modals\editorDecision\PKPEditorDecisionHandler', '\PKPEditorDecisionHandler');
 }

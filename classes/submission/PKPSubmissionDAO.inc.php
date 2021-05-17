@@ -18,12 +18,15 @@
 namespace PKP\submission;
 
 use APP\core\Services;
+use APP\submission\Submission;
 
+use Exception;
 use Illuminate\Support\Facades\DB;
+use PKP\cache\CacheManager;
 use PKP\db\DAORegistry;
 use PKP\db\DAOResultFactory;
-use PKP\db\SchemaDAO;
 
+use PKP\db\SchemaDAO;
 use PKP\services\PKPSchemaService;
 
 abstract class PKPSubmissionDAO extends SchemaDAO
@@ -129,7 +132,7 @@ abstract class PKPSubmissionDAO extends SchemaDAO
     public function deleteById($submissionId)
     {
         $submission = $this->getById($submissionId);
-        if (!is_a($submission, 'Submission')) {
+        if (!$submission instanceof Submission) {
             throw new Exception('Could not delete submission. No submission with the id ' . (int) $submissionId . ' was found.');
         }
 

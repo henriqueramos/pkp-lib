@@ -13,10 +13,17 @@
  * @brief Handle AJAX operations for review round tabs on review stages workflow pages.
  */
 
-// Import the base Handler.
-import('classes.handler.Handler');
+namespace PKP\controllers\tab\workflow;
+
+use APP\handler\Handler;
+use APP\i18n\AppLocale;
+use APP\notification\Notification;
+use APP\template\TemplateManager;
 
 use PKP\core\JSONMessage;
+use PKP\db\DAORegistry;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\internal\ReviewRoundRequiredPolicy;
 
 class PKPReviewRoundTabHandler extends Handler
 {
@@ -29,7 +36,6 @@ class PKPReviewRoundTabHandler extends Handler
     public function authorize($request, &$args, $roleAssignments)
     {
         // We need a review round id in request.
-        import('lib.pkp.classes.security.authorization.internal.ReviewRoundRequiredPolicy');
         $this->addPolicy(new ReviewRoundRequiredPolicy($request, $args));
 
         return parent::authorize($request, $args, $roleAssignments);
@@ -93,9 +99,9 @@ class PKPReviewRoundTabHandler extends Handler
         // Assign editor decision actions to the template, only if
         // user is accessing the last review round for this stage.
         $notificationRequestOptions = [
-            NOTIFICATION_LEVEL_NORMAL => [
-                NOTIFICATION_TYPE_REVIEW_ROUND_STATUS => [ASSOC_TYPE_REVIEW_ROUND, $reviewRound->getId()]],
-            NOTIFICATION_LEVEL_TRIVIAL => [],
+            Notification::NOTIFICATION_LEVEL_NORMAL => [
+                PKPNotification::NOTIFICATION_TYPE_REVIEW_ROUND_STATUS => [ASSOC_TYPE_REVIEW_ROUND, $reviewRound->getId()]],
+            Notification::NOTIFICATION_LEVEL_TRIVIAL => [],
         ];
         $templateMgr->assign('reviewRoundNotificationRequestOptions', $notificationRequestOptions);
 
@@ -111,4 +117,8 @@ class PKPReviewRoundTabHandler extends Handler
 
         return $templateMgr->fetchJson('workflow/reviewRound.tpl');
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\tab\workflow\PKPReviewRoundTabHandler', '\PKPReviewRoundTabHandler');
 }

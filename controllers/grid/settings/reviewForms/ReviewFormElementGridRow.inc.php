@@ -12,8 +12,10 @@
  *
  * @brief ReviewFormElements grid row definition
  */
-import('lib.pkp.classes.controllers.grid.GridRow');
-import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
+
+use PKP\controllers\grid\GridRow;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 
 class ReviewFormElementGridRow extends GridRow
 {
@@ -31,7 +33,7 @@ class ReviewFormElementGridRow extends GridRow
         // add grid row actions: edit, delete
 
         $element = parent::getData();
-        assert(is_a($element, 'ReviewFormElement'));
+        assert($element instanceof \PKP\reviewForm\ReviewFormElement);
         $rowId = $this->getId();
 
         $router = $request->getRouter();

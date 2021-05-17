@@ -13,29 +13,41 @@
  * @brief Base class for install and upgrade scripts.
  */
 
+namespace PKP\install;
 
-// Database installation files
-define('INSTALLER_DATA_DIR', 'dbscripts/xml');
-
-// Installer error codes
-define('INSTALLER_ERROR_GENERAL', 1);
-define('INSTALLER_ERROR_DB', 2);
-
-// Default data
-define('INSTALLER_DEFAULT_LOCALE', 'en_US');
-
-import('lib.pkp.classes.site.Version');
-import('lib.pkp.classes.site.VersionDAO');
+use APP\core\Application;
+use APP\file\LibraryFileManager;
+use APP\i18n\AppLocale;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-
+use PKP\cache\CacheManager;
+use PKP\config\Config;
+use PKP\core\Core;
+use PKP\core\PKPApplication;
+use PKP\db\DAORegistry;
 use PKP\db\DBDataXMLParser;
+use PKP\file\FileManager;
+use PKP\filter\FilterHelper;
+use PKP\notification\PKPNotification;
+use PKP\plugins\HookRegistry;
+use PKP\plugins\PluginRegistry;
+use PKP\site\Version;
+
+use PKP\site\VersionCheck;
+use PKP\site\VersionDAO;
 use PKP\xml\PKPXMLParser;
 
 class Installer
 {
+    // Installer error codes
+    public const INSTALLER_ERROR_GENERAL = 1;
+    public const INSTALLER_ERROR_DB = 2;
+
+    public const INSTALLER_DATA_DIR = 'dbscripts/xml';
+    public const INSTALLER_DEFAULT_LOCALE = 'en_US';
+
     /** @var string descriptor path (relative to INSTALLER_DATA_DIR) */
     public $descriptor;
 
@@ -233,11 +245,11 @@ class Installer
         // Read installation descriptor file
         $this->log(sprintf('load: %s', $this->descriptor));
         $xmlParser = new PKPXMLParser();
-        $installPath = $this->isPlugin ? $this->descriptor : INSTALLER_DATA_DIR . DIRECTORY_SEPARATOR . $this->descriptor;
+        $installPath = $this->isPlugin ? $this->descriptor : self::INSTALLER_DATA_DIR . DIRECTORY_SEPARATOR . $this->descriptor;
         $installTree = $xmlParser->parse($installPath);
         if (!$installTree) {
             // Error reading installation file
-            $this->setError(INSTALLER_ERROR_GENERAL, 'installer.installFileError');
+            $this->setError(self::INSTALLER_ERROR_GENERAL, 'installer.installFileError');
             return false;
         }
 
@@ -350,7 +362,7 @@ class Installer
             $newFileName = str_replace('{$locale}', $this->locale, $fileName);
             if (!file_exists($newFileName)) {
                 // Use version from default locale if data file is not available in the selected locale
-                $newFileName = str_replace('{$locale}', INSTALLER_DEFAULT_LOCALE, $fileName);
+                $newFileName = str_replace('{$locale}', self::INSTALLER_DEFAULT_LOCALE, $fileName);
             }
 
             $this->actions[] = ['type' => $node->getName(), 'file' => $newFileName, 'attr' => $node->getAttributes()];
@@ -394,7 +406,7 @@ class Installer
                 if ($sql) {
                     return $this->executeSQL($sql);
                 } else {
-                    $this->setError(INSTALLER_ERROR_DB, str_replace('{$file}', $fileName, __('installer.installParseDBFileError')));
+                    $this->setError(self::INSTALLER_ERROR_DB, str_replace('{$file}', $fileName, __('installer.installParseDBFileError')));
                     return false;
                 }
                 break;
@@ -434,7 +446,7 @@ class Installer
                 } catch (Exception $e) {
                     // Log an error message
                     $this->setError(
-                        INSTALLER_ERROR_DB,
+                        self::INSTALLER_ERROR_DB,
                         Config::getVar('debug', 'show_stacktrace') ? (string) $e : $e->getMessage()
                     );
 
@@ -501,7 +513,7 @@ class Installer
             try {
                 DB::affectingStatement($sql);
             } catch (Exception $e) {
-                $this->setError(INSTALLER_ERROR_DB, $e->getMessage());
+                $this->setError(self::INSTALLER_ERROR_DB, $e->getMessage());
                 return false;
             }
         }
@@ -522,7 +534,7 @@ class Installer
         $configParser = new \PKP\config\ConfigParser();
         if (!$configParser->updateConfig(Config::getConfigFileName(), $configParams)) {
             // Error reading config file
-            $this->setError(INSTALLER_ERROR_GENERAL, 'installer.configFileError');
+            $this->setError(self::INSTALLER_ERROR_GENERAL, 'installer.configFileError');
             return false;
         }
 
@@ -643,7 +655,7 @@ class Installer
     public function getErrorString()
     {
         switch ($this->getErrorType()) {
-            case INSTALLER_ERROR_DB:
+            case self::INSTALLER_ERROR_DB:
                 return 'DB: ' . $this->getErrorMsg();
             default:
                 return __($this->getErrorMsg());
@@ -743,7 +755,6 @@ class Installer
 
         // Get the filter helper.
         if ($filterHelper === false) {
-            import('lib.pkp.classes.filter.FilterHelper');
             $filterHelper = new FilterHelper();
         }
 
@@ -808,7 +819,6 @@ class Installer
     public function addPluginVersions()
     {
         $versionDao = DAORegistry::getDAO('VersionDAO'); /** @var VersionDAO $versionDao */
-        import('lib.pkp.classes.site.VersionCheck');
         $fileManager = new FileManager();
         $categories = PluginRegistry::getCategories();
         foreach ($categories as $category) {
@@ -854,7 +864,7 @@ class Installer
      */
     public function abort($installer, $attr)
     {
-        $installer->setError(INSTALLER_ERROR_GENERAL, $attr['message']);
+        $installer->setError(self::INSTALLER_ERROR_GENERAL, $attr['message']);
         return false;
     }
 
@@ -889,7 +899,7 @@ class Installer
             return true;
         }
 
-        $this->setError(INSTALLER_ERROR_GENERAL, 'installer.unsupportedPhpError');
+        $this->setError(self::INSTALLER_ERROR_GENERAL, 'installer.unsupportedPhpError');
         return false;
     }
 
@@ -1081,7 +1091,6 @@ class Installer
      */
     public function setStatsEmailSettings()
     {
-        import('lib.pkp.classes.notification.PKPNotification'); // NOTIFICATION_TYPE_EDITORIAL_REPORT
         $roleIds = [ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR];
 
         $userGroupDao = DAORegistry::getDAO('UserGroupDAO'); /** @var UserGroupDAO $userGroupDao */
@@ -1097,7 +1106,7 @@ class Installer
 								(?, ?, ?, ?, ?)',
                             [
                                 'blocked_emailed_notification',
-                                NOTIFICATION_TYPE_EDITORIAL_REPORT,
+                                PKPNotification::NOTIFICATION_TYPE_EDITORIAL_REPORT,
                                 $user->getId(),
                                 $context->getId(),
                                 'int'
@@ -1119,7 +1128,6 @@ class Installer
      */
     public function fixLibraryFiles()
     {
-        import('classes.file.LibraryFileManager');
         // Fetch all library files (no method currently in LibraryFileDAO for this)
         $libraryFileDao = DAORegistry::getDAO('LibraryFileDAO'); /** @var LibraryFileDAO $libraryFileDao */
         $result = $libraryFileDao->retrieve('SELECT * FROM library_files');
@@ -1145,4 +1153,12 @@ class Installer
         }
         return true;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\install\Installer', '\Installer');
+    define('INSTALLER_ERROR_GENERAL', \Installer::INSTALLER_ERROR_GENERAL);
+    define('INSTALLER_ERROR_DB', \Installer::INSTALLER_ERROR_DB);
+    define('INSTALLER_DATA_DIR', \Installer::INSTALLER_DATA_DIR);
+    define('INSTALLER_DEFAULT_LOCALE', \Installer::INSTALLER_DEFAULT_LOCALE);
 }

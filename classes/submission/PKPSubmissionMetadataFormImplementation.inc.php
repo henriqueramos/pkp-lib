@@ -17,14 +17,11 @@
 namespace PKP\submission;
 
 use APP\core\Application;
-
 use APP\core\Services;
-use FormValidatorCustom;
 
-// FIXME: Namespacing needed for the classes below
-use FormValidatorLocale;
+use APP\log\SubmissionEventLogEntry;
 use PKP\db\DAORegistry;
-use SubmissionLog;
+use PKP\log\SubmissionLog;
 
 class PKPSubmissionMetadataFormImplementation
 {
@@ -61,17 +58,14 @@ class PKPSubmissionMetadataFormImplementation
      */
     public function addChecks($submission)
     {
-        import('lib.pkp.classes.form.validation.FormValidatorLocale');
-        import('lib.pkp.classes.form.validation.FormValidatorCustom');
-
         // Validation checks.
-        $this->_parentForm->addCheck(new FormValidatorLocale($this->_parentForm, 'title', 'required', 'submission.submit.form.titleRequired', $submission->getCurrentPublication()->getData('locale')));
+        $this->_parentForm->addCheck(new \PKP\form\validation\FormValidatorLocale($this->_parentForm, 'title', 'required', 'submission.submit.form.titleRequired', $submission->getCurrentPublication()->getData('locale')));
         if ($this->_getAbstractsRequired($submission)) {
-            $this->_parentForm->addCheck(new FormValidatorLocale($this->_parentForm, 'abstract', 'required', 'submission.submit.form.abstractRequired', $submission->getCurrentPublication()->getData('locale')));
+            $this->_parentForm->addCheck(new \PKP\form\validation\FormValidatorLocale($this->_parentForm, 'abstract', 'required', 'submission.submit.form.abstractRequired', $submission->getCurrentPublication()->getData('locale')));
         }
 
         // Validates that at least one author has been added.
-        $this->_parentForm->addCheck(new FormValidatorCustom(
+        $this->_parentForm->addCheck(new \PKP\form\validation\FormValidatorCustom(
             $this->_parentForm,
             'authors',
             'required',
@@ -89,19 +83,19 @@ class PKPSubmissionMetadataFormImplementation
             if ($context->getData($field) === METADATA_REQUIRE) {
                 switch ($field) {
                     case in_array($field, $this->getLocaleFieldNames()):
-                        $this->_parentForm->addCheck(new FormValidatorLocale($this->_parentForm, $field, 'required', $requiredLocaleKey, $submission->getCurrentPublication()->getData('locale')));
+                        $this->_parentForm->addCheck(new \PKP\form\validation\FormValidatorLocale($this->_parentForm, $field, 'required', $requiredLocaleKey, $submission->getCurrentPublication()->getData('locale')));
                         break;
                     case in_array($field, $this->getTagitFieldNames()):
-                        $this->_parentForm->addCheck(new FormValidatorCustom($this->_parentForm, $field, 'required', $requiredLocaleKey, create_function('$field,$form,$name', '$data = (array) $form->getData(\'keywords\'); return array_key_exists($name, $data);'), [$this->_parentForm, $submission->getCurrentPublication()->getData('locale') . '-' . $field]));
+                        $this->_parentForm->addCheck(new \PKP\form\validation\FormValidatorCustom($this->_parentForm, $field, 'required', $requiredLocaleKey, create_function('$field,$form,$name', '$data = (array) $form->getData(\'keywords\'); return array_key_exists($name, $data);'), [$this->_parentForm, $submission->getCurrentPublication()->getData('locale') . '-' . $field]));
                         break;
                     case 'citations':
                         $form = $this->_parentForm;
-                        $this->_parentForm->addCheck(new FormValidatorCustom($this->_parentForm, 'citationsRaw', 'required', $requiredLocaleKey, function ($key) use ($form) {
+                        $this->_parentForm->addCheck(new \PKP\form\validation\FormValidatorCustom($this->_parentForm, 'citationsRaw', 'required', $requiredLocaleKey, function ($key) use ($form) {
                             return !empty($form->getData('citationsRaw'));
                         }));
                         break;
                     default:
-                        $this->_parentForm->addCheck(new FormValidator($this->_parentForm, $field, 'required', $requiredLocaleKey));
+                        $this->_parentForm->addCheck(new \PKP\form\validation\FormValidator($this->_parentForm, $field, 'required', $requiredLocaleKey));
                 }
             }
         }
@@ -262,9 +256,7 @@ class PKPSubmissionMetadataFormImplementation
         // Only log modifications on completed submissions
         if ($submission->getSubmissionProgress() == 0) {
             // Log the metadata modification event.
-            import('lib.pkp.classes.log.SubmissionLog');
-            import('classes.log.SubmissionEventLogEntry');
-            SubmissionLog::logEvent($request, $submission, SUBMISSION_LOG_METADATA_UPDATE, 'submission.event.general.metadataUpdated');
+            SubmissionLog::logEvent($request, $submission, SubmissionEventLogEntry::SUBMISSION_LOG_METADATA_UPDATE, 'submission.event.general.metadataUpdated');
         }
     }
 }

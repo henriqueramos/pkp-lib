@@ -14,6 +14,8 @@
  * stores/retrieves from an associative array
  */
 
+use PKP\file\TemporaryFileManager;
+
 import('lib.pkp.controllers.grid.files.form.LibraryFileForm');
 
 class NewLibraryFileForm extends LibraryFileForm
@@ -26,7 +28,7 @@ class NewLibraryFileForm extends LibraryFileForm
     public function __construct($contextId)
     {
         parent::__construct('controllers/grid/settings/library/form/newFileForm.tpl', $contextId);
-        $this->addCheck(new FormValidator($this, 'temporaryFileId', 'required', 'settings.libraryFiles.fileRequired'));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'temporaryFileId', 'required', 'settings.libraryFiles.fileRequired'));
     }
 
     /**
@@ -69,7 +71,6 @@ class NewLibraryFileForm extends LibraryFileForm
         $fileId = $libraryFileDao->insertObject($libraryFile);
 
         // Clean up the temporary file
-        import('lib.pkp.classes.file.TemporaryFileManager');
         $temporaryFileManager = new TemporaryFileManager();
         $temporaryFileManager->deleteById($this->getData('temporaryFileId'), $userId);
         parent::execute(...$functionArgs);

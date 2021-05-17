@@ -14,7 +14,13 @@
  *
  */
 
-import('lib.pkp.classes.controllers.grid.feature.GridFeature');
+namespace PKP\controllers\grid\feature;
+
+use APP\template\TemplateManager;
+use PKP\controllers\grid\GridRow;
+use PKP\linkAction\LinkAction;
+
+use PKP\linkAction\request\NullAction;
 
 class OrderItemsFeature extends GridFeature
 {
@@ -65,7 +71,7 @@ class OrderItemsFeature extends GridFeature
     {
         // Make sure we don't return the override row template
         // flag to objects that are not instances of GridRow class.
-        if (get_class($gridRow) == 'GridRow') {
+        if ($gridRow instanceof GridRow) {
             return $this->_overrideRowTemplate;
         } else {
             return false;
@@ -152,7 +158,6 @@ class OrderItemsFeature extends GridFeature
         $grid = & $args['grid'];
 
         if ($this->isOrderActionNecessary()) {
-            import('lib.pkp.classes.linkAction.request.NullAction');
             $grid->addAction(
                 new LinkAction(
                     'orderItems',
@@ -179,7 +184,6 @@ class OrderItemsFeature extends GridFeature
             $row->setTemplate('controllers/grid/gridRow.tpl');
         }
 
-        import('lib.pkp.classes.linkAction.request.NullAction');
         $row->addAction(
             new LinkAction(
                 'moveItem',
@@ -187,7 +191,7 @@ class OrderItemsFeature extends GridFeature
                 '',
                 'order_items'
             ),
-            GRID_ACTION_POSITION_ROW_LEFT
+            GridRow::GRID_ACTION_POSITION_ROW_LEFT
         );
     }
 
@@ -205,4 +209,8 @@ class OrderItemsFeature extends GridFeature
     {
         return true;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\grid\feature\OrderItemsFeature', '\OrderItemsFeature');
 }

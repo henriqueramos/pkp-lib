@@ -13,7 +13,11 @@
  * @brief Abstract class for report plugins
  */
 
-import('lib.pkp.classes.plugins.Plugin');
+namespace PKP\plugins;
+
+use PKP\core\PKPApplication;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\RedirectAction;
 
 abstract class ReportPlugin extends Plugin
 {
@@ -148,7 +152,6 @@ abstract class ReportPlugin extends Plugin
     public function getActions($request, $actionArgs)
     {
         $dispatcher = $request->getDispatcher();
-        import('lib.pkp.classes.linkAction.request.RedirectAction');
         return array_merge(
             $this->getEnabled() ? [
                 new LinkAction(
@@ -169,4 +172,8 @@ abstract class ReportPlugin extends Plugin
             parent::getActions($request, $actionArgs)
         );
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\plugins\ReportPlugin', '\ReportPlugin');
 }

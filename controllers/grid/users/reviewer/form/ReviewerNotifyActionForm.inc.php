@@ -12,9 +12,11 @@
  * @brief Perform an action on a review including a reviewer notification email.
  */
 
-import('lib.pkp.classes.form.Form');
-
+use APP\notification\NotificationManager;
+use PKP\form\Form;
 use PKP\mail\SubmissionMailTemplate;
+
+use PKP\notification\PKPNotification;
 
 abstract class ReviewerNotifyActionForm extends Form
 {
@@ -107,9 +109,8 @@ abstract class ReviewerNotifyActionForm extends Form
             $mail->setBody($this->getData('personalMessage'));
             $mail->assignParams();
             if (!$mail->send($request)) {
-                import('classes.notification.NotificationManager');
                 $notificationMgr = new NotificationManager();
-                $notificationMgr->createTrivialNotification($request->getUser()->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
+                $notificationMgr->createTrivialNotification($request->getUser()->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
             }
         }
         parent::execute(...$functionArgs);

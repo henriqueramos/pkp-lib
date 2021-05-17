@@ -13,12 +13,16 @@
  * @brief Handle language grid requests.
  */
 
-import('lib.pkp.classes.controllers.grid.GridHandler');
 import('lib.pkp.controllers.grid.languages.LanguageGridRow');
 import('lib.pkp.controllers.grid.languages.LanguageGridCellProvider');
 
 use APP\core\Services;
+use APP\notification\NotificationManager;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+
 use PKP\core\JSONMessage;
+use PKP\notification\PKPNotification;
 
 class LanguageGridHandler extends GridHandler
 {
@@ -151,7 +155,7 @@ class LanguageGridHandler extends GridHandler
         $user = $request->getUser();
         $notificationManager->createTrivialNotification(
             $user->getId(),
-            NOTIFICATION_TYPE_SUCCESS,
+            PKPNotification::NOTIFICATION_TYPE_SUCCESS,
             ['contents' => __('notification.localeSettingsSaved')]
         );
 
@@ -197,7 +201,7 @@ class LanguageGridHandler extends GridHandler
             $user = $request->getUser();
             $notificationManager->createTrivialNotification(
                 $user->getId(),
-                NOTIFICATION_TYPE_SUCCESS,
+                PKPNotification::NOTIFICATION_TYPE_SUCCESS,
                 ['contents' => __('notification.localeSettingsSaved')]
             );
         }

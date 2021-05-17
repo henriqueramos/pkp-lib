@@ -13,7 +13,11 @@
  * @brief Form to add/edit category.
  */
 
-import('lib.pkp.classes.form.Form');
+use APP\template\TemplateManager;
+use PKP\file\ContextFileManager;
+use PKP\file\TemporaryFileManager;
+
+use PKP\form\Form;
 
 class CategoryForm extends Form
 {
@@ -51,9 +55,9 @@ class CategoryForm extends Form
 
         // Validation checks for this form
         $form = $this;
-        $this->addCheck(new FormValidatorLocale($this, 'name', 'required', 'grid.category.nameRequired'));
-        $this->addCheck(new FormValidatorRegExp($this, 'path', 'required', 'grid.category.pathAlphaNumeric', '/^[a-zA-Z0-9\/._-]+$/'));
-        $this->addCheck(new FormValidatorCustom(
+        $this->addCheck(new \PKP\form\validation\FormValidatorLocale($this, 'name', 'required', 'grid.category.nameRequired'));
+        $this->addCheck(new \PKP\form\validation\FormValidatorRegExp($this, 'path', 'required', 'grid.category.pathAlphaNumeric', '/^[a-zA-Z0-9\/._-]+$/'));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCustom(
             $this,
             'path',
             'required',
@@ -63,8 +67,8 @@ class CategoryForm extends Form
                 return !$categoryDao->categoryExistsByPath($path, $contextId) || ($form->getData('oldPath') != null && $form->getData('oldPath') == $path);
             }
         ));
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     //
@@ -139,7 +143,6 @@ class CategoryForm extends Form
     public function validate($callHooks = true)
     {
         if ($temporaryFileId = $this->getData('temporaryFileId')) {
-            import('lib.pkp.classes.file.TemporaryFileManager');
             $temporaryFileManager = new TemporaryFileManager();
             $temporaryFileDao = DAORegistry::getDAO('TemporaryFileDAO'); /** @var TemporaryFileDAO $temporaryFileDao */
             $temporaryFile = $temporaryFileDao->getTemporaryFile($temporaryFileId, $this->_userId);
@@ -284,7 +287,6 @@ class CategoryForm extends Form
 
             $temporaryFile = $temporaryFileDao->getTemporaryFile($temporaryFileId, $this->_userId);
             $temporaryFilePath = $temporaryFile->getFilePath();
-            import('lib.pkp.classes.file.ContextFileManager');
             $contextFileManager = new ContextFileManager($this->getContextId());
             $basePath = $contextFileManager->getBasePath() . '/categories/';
 
@@ -345,7 +347,6 @@ class CategoryForm extends Form
             ]);
 
             // Clean up the temporary file
-            import('lib.pkp.classes.file.TemporaryFileManager');
             $temporaryFileManager = new TemporaryFileManager();
             $temporaryFileManager->deleteById($temporaryFileId, $this->_userId);
         }

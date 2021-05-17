@@ -13,8 +13,10 @@
  * @brief Form to edit user's public profile.
  */
 
+use APP\file\PublicFileManager;
+use APP\template\TemplateManager;
+
 import('lib.pkp.classes.user.form.BaseProfileForm');
-import('classes.file.PublicFileManager');
 
 define('PROFILE_IMAGE_MAX_WIDTH', 150);
 define('PROFILE_IMAGE_MAX_HEIGHT', 150);
@@ -31,8 +33,8 @@ class PublicProfileForm extends BaseProfileForm
         parent::__construct('user/publicProfileForm.tpl', $user);
 
         // Validation checks for this form
-        $this->addCheck(new FormValidatorORCID($this, 'orcid', 'optional', 'user.orcid.orcidInvalid'));
-        $this->addCheck(new FormValidatorUrl($this, 'userUrl', 'optional', 'user.profile.form.urlInvalid'));
+        $this->addCheck(new \PKP\form\validation\FormValidatorORCID($this, 'orcid', 'optional', 'user.orcid.orcidInvalid'));
+        $this->addCheck(new \PKP\form\validation\FormValidatorUrl($this, 'userUrl', 'optional', 'user.profile.form.urlInvalid'));
     }
 
     /**
@@ -70,7 +72,6 @@ class PublicProfileForm extends BaseProfileForm
      */
     public function uploadProfileImage()
     {
-        import('classes.file.PublicFileManager');
         $publicFileManager = new PublicFileManager();
 
         $user = $this->getUser();

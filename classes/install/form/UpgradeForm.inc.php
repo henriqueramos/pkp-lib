@@ -13,7 +13,11 @@
  * @brief Form for system upgrades.
  */
 
-import('classes.install.Upgrade');
+use APP\install\Upgrade;
+
+use APP\template\TemplateManager;
+use PKP\install\Installer;
+
 import('lib.pkp.classes.install.form.MaintenanceForm');
 
 class UpgradeForm extends MaintenanceForm
@@ -53,7 +57,7 @@ class UpgradeForm extends MaintenanceForm
             $templateMgr->display('install/upgradeComplete.tpl');
         } else {
             switch ($installer->getErrorType()) {
-                case INSTALLER_ERROR_DB:
+                case Installer::INSTALLER_ERROR_DB:
                     $this->dbInstallError($installer->getErrorMsg());
                     break;
                 default:

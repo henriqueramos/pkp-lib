@@ -14,8 +14,13 @@
  *
  */
 
-import('lib.pkp.classes.handler.APIHandler');
-
+use PKP\file\FileManager;
+use PKP\handler\APIHandler;
+use PKP\security\authorization\ContextAccessPolicy;
+use PKP\security\authorization\internal\SubmissionFileStageAccessPolicy;
+use PKP\security\authorization\SubmissionAccessPolicy;
+use PKP\security\authorization\SubmissionFileAccessPolicy;
+use PKP\services\interfaces\EntityWriteInterface;
 use PKP\services\PKPSchemaService;
 use PKP\submission\SubmissionFile;
 
@@ -71,28 +76,23 @@ class PKPSubmissionFileHandler extends APIHandler
     public function authorize($request, &$args, $roleAssignments)
     {
         $route = $this->getSlimRequest()->getAttribute('route');
-        import('lib.pkp.classes.security.authorization.SubmissionFileAccessPolicy'); // SUBMISSION_FILE_ACCESS_
 
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
 
-        import('lib.pkp.classes.security.authorization.SubmissionAccessPolicy');
         $this->addPolicy(new SubmissionAccessPolicy($request, $args, $roleAssignments));
 
         if ($route->getName() === 'add') {
             $params = $this->getSlimRequest()->getParsedBody();
             $fileStage = isset($params['fileStage']) ? (int) $params['fileStage'] : 0;
-            import('lib.pkp.classes.security.authorization.internal.SubmissionFileStageAccessPolicy');
-            $this->addPolicy(new SubmissionFileStageAccessPolicy($fileStage, SUBMISSION_FILE_ACCESS_MODIFY, 'api.submissionFiles.403.unauthorizedFileStageIdWrite'));
+            $this->addPolicy(new SubmissionFileStageAccessPolicy($fileStage, SubmissionFileAccessPolicy::SUBMISSION_FILE_ACCESS_MODIFY, 'api.submissionFiles.403.unauthorizedFileStageIdWrite'));
         } elseif ($route->getName() === 'getMany') {
             // Anyone passing SubmissionAccessPolicy is allowed to access getMany,
             // but the endpoint will return different files depending on the user's
             // stage assignments.
         } else {
             $accessMode = $this->getSlimRequest()->getMethod() === 'GET'
-                ? SUBMISSION_FILE_ACCESS_READ
-                : SUBMISSION_FILE_ACCESS_MODIFY;
-            import('lib.pkp.classes.security.authorization.SubmissionFileAccessPolicy');
+                ? SubmissionFileAccessPolicy::SUBMISSION_FILE_ACCESS_READ
+                : SubmissionFileAccessPolicy::SUBMISSION_FILE_ACCESS_MODIFY;
             $this->addPolicy(new SubmissionFileAccessPolicy($request, $args, $roleAssignments, $accessMode, (int) $route->getArgument('submissionFileId')));
         }
 
@@ -155,7 +155,7 @@ class PKPSubmissionFileHandler extends APIHandler
         // Set the allowed file stages based on stage assignment
         // @see PKPSubmissionFileService::getAssignedFileStages() for excluded file stages
         } else {
-            $allowedFileStages = Services::get('submissionFile')->getAssignedFileStages($stageAssignments, SUBMISSION_FILE_ACCESS_READ);
+            $allowedFileStages = Services::get('submissionFile')->getAssignedFileStages($stageAssignments, SubmissionFileAccessPolicy::SUBMISSION_FILE_ACCESS_READ);
         }
 
         if (empty($params['fileStages'])) {
@@ -262,7 +262,6 @@ class PKPSubmissionFileHandler extends APIHandler
             return $this->getUploadErrorResponse($response, $_FILES['file']['error']);
         }
 
-        import('lib.pkp.classes.file.FileManager');
         $fileManager = new FileManager();
         $extension = $fileManager->parseFileExtension($_FILES['file']['name']);
 
@@ -294,7 +293,7 @@ class PKPSubmissionFileHandler extends APIHandler
             }
         }
 
-        $errors = Services::get('submissionFile')->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
+        $errors = Services::get('submissionFile')->validate(EntityWriteInterface::VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
 
         if (!empty($errors)) {
             return $response->withStatus(400)->withJson($errors);
@@ -374,7 +373,7 @@ class PKPSubmissionFileHandler extends APIHandler
         $primaryLocale = $request->getContext()->getPrimaryLocale();
         $allowedLocales = $request->getContext()->getData('supportedSubmissionLocales');
 
-        $errors = Services::get('submissionFile')->validate(VALIDATE_ACTION_EDIT, $params, $allowedLocales, $primaryLocale);
+        $errors = Services::get('submissionFile')->validate(EntityWriteInterface::VALIDATE_ACTION_EDIT, $params, $allowedLocales, $primaryLocale);
 
         if (!empty($errors)) {
             return $response->withStatus(400)->withJson($errors);
@@ -386,7 +385,6 @@ class PKPSubmissionFileHandler extends APIHandler
                 return $this->getUploadErrorResponse($response, $_FILES['file']['error']);
             }
 
-            import('lib.pkp.classes.file.FileManager');
             $fileManager = new FileManager();
             $extension = $fileManager->parseFileExtension($_FILES['file']['name']);
             $submissionDir = Services::get('submissionFile')->getSubmissionDir($request->getContext()->getId(), $submission->getId());

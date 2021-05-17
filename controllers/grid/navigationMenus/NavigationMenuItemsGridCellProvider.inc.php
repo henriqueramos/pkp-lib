@@ -13,16 +13,19 @@
  * @brief Cell provider for title column of a NavigationMenuItems grid.
  */
 
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
-
 use APP\core\Services;
+use APP\template\TemplateManager;
+use PKP\controllers\grid\GridCellProvider;
+
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 
 class NavigationMenuItemsGridCellProvider extends GridCellProvider
 {
     /**
      * @copydoc GridCellProvider::getCellActions()
      */
-    public function getCellActions($request, $row, $column, $position = GRID_ACTION_POSITION_DEFAULT)
+    public function getCellActions($request, $row, $column, $position = GridHandler::GRID_ACTION_POSITION_DEFAULT)
     {
         return parent::getCellActions($request, $row, $column, $position);
     }
@@ -31,7 +34,7 @@ class NavigationMenuItemsGridCellProvider extends GridCellProvider
      * Extracts variables for a given column from a data element
      * so that they may be assigned to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -40,7 +43,7 @@ class NavigationMenuItemsGridCellProvider extends GridCellProvider
     {
         $navigationMenuItem = $row->getData();
         $columnId = $column->getId();
-        assert(is_a($navigationMenuItem, 'NavigationMenuItem') && !empty($columnId));
+        assert($navigationMenuItem instanceof \PKP\navigationMenu\NavigationMenuItem && !empty($columnId));
 
         switch ($columnId) {
             case 'title':

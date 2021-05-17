@@ -13,7 +13,11 @@
  * @brief Form for creating the first review round for a submission
  */
 
-import('lib.pkp.classes.controllers.modals.editorDecision.form.EditorDecisionForm');
+use APP\workflow\EditorDecisionActionsManager;
+use PKP\controllers\modals\editorDecision\form\EditorDecisionForm;
+use PKP\submission\action\EditorAction;
+
+use PKP\submission\reviewRound\ReviewRound;
 
 class InitiateReviewForm extends EditorDecisionForm
 {
@@ -53,9 +57,7 @@ class InitiateReviewForm extends EditorDecisionForm
         $submission = $this->getSubmission();
 
         // Record the decision.
-        import('classes.workflow.EditorDecisionActionsManager');
         $actionLabels = (new EditorDecisionActionsManager())->getActionLabels($request->getContext(), $submission, $this->getStageId(), [$this->_decision]);
-        import('lib.pkp.classes.submission.action.EditorAction');
         $editorAction = new EditorAction();
         $editorAction->recordDecision($request, $submission, $this->_decision, $actionLabels);
 
@@ -63,6 +65,6 @@ class InitiateReviewForm extends EditorDecisionForm
         $editorAction->incrementWorkflowStage($submission, $this->_getStageId(), $request);
 
         // Create an initial internal review round.
-        $this->_initiateReviewRound($submission, $this->_getStageId(), $request, REVIEW_ROUND_STATUS_PENDING_REVIEWERS);
+        $this->_initiateReviewRound($submission, $this->_getStageId(), $request, ReviewRound::REVIEW_ROUND_STATUS_PENDING_REVIEWERS);
     }
 }

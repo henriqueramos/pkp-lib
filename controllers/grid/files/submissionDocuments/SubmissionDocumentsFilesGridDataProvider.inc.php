@@ -12,7 +12,8 @@
  * @brief The base data provider for the submission documents library files grid.
  */
 
-import('lib.pkp.classes.controllers.grid.CategoryGridDataProvider');
+use PKP\controllers\grid\CategoryGridDataProvider;
+use PKP\security\authorization\SubmissionAccessPolicy;
 
 class SubmissionDocumentsFilesGridDataProvider extends CategoryGridDataProvider
 {
@@ -21,7 +22,6 @@ class SubmissionDocumentsFilesGridDataProvider extends CategoryGridDataProvider
      */
     public function getAuthorizationPolicy($request, $args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.SubmissionAccessPolicy');
         return new SubmissionAccessPolicy($request, $args, $roleAssignments, 'submissionId');
     }
 

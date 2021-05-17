@@ -13,12 +13,13 @@
  * @brief Handle requests for the public-facing catalog.
  */
 
-import('classes.handler.Handler');
-
-// import UI base classes
-import('lib.pkp.classes.linkAction.LinkAction');
-
 use APP\core\Services;
+use APP\handler\Handler;
+use APP\template\TemplateManager;
+
+use PKP\file\ContextFileManager;
+use PKP\security\authorization\ContextRequiredPolicy;
+use PKP\submission\PKPSubmission;
 
 class PKPCatalogHandler extends Handler
 {
@@ -30,7 +31,6 @@ class PKPCatalogHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextRequiredPolicy');
         $this->addPolicy(new ContextRequiredPolicy($request));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -61,8 +61,6 @@ class PKPCatalogHandler extends Handler
         }
 
         $this->setupTemplate($request);
-        import('lib.pkp.classes.submission.PKPSubmission'); // STATUS_ constants
-
         $orderOption = $category->getSortOption() ? $category->getSortOption() : ORDERBY_DATE_PUBLISHED . '-' . SORT_DIRECTION_DESC;
         [$orderBy, $orderDir] = explode('-', $orderOption);
 
@@ -77,7 +75,7 @@ class PKPCatalogHandler extends Handler
             'orderDirection' => $orderDir == SORT_DIRECTION_ASC ? 'ASC' : 'DESC',
             'count' => $count,
             'offset' => $offset,
-            'status' => STATUS_PUBLISHED,
+            'status' => PKPSubmission::STATUS_PUBLISHED,
         ];
         $submissionsIterator = Services::get('submission')->getMany($params);
         $total = Services::get('submission')->getMax($params);
@@ -115,7 +113,6 @@ class PKPCatalogHandler extends Handler
                     $this->getDispatcher()->handle404();
                 }
                 $imageInfo = $category->getImage();
-                import('lib.pkp.classes.file.ContextFileManager');
                 $contextFileManager = new ContextFileManager($context->getId());
                 $contextFileManager->downloadByPath($contextFileManager->getBasePath() . '/categories/' . $imageInfo['name'], null, true);
                 break;
@@ -141,7 +138,6 @@ class PKPCatalogHandler extends Handler
                     $this->getDispatcher()->handle404();
                 }
                 $imageInfo = $category->getImage();
-                import('lib.pkp.classes.file.ContextFileManager');
                 $contextFileManager = new ContextFileManager($context->getId());
                 $contextFileManager->downloadByPath($contextFileManager->getBasePath() . '/categories/' . $imageInfo['thumbnailName'], null, true);
                 break;

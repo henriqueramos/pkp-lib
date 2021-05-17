@@ -13,8 +13,11 @@
  * @brief Base class for all management page handlers.
  */
 
-// Import the base Handler.
-import('classes.handler.Handler');
+use APP\file\PublicFileManager;
+
+use APP\handler\Handler;
+use APP\template\TemplateManager;
+use PKP\security\authorization\ContextAccessPolicy;
 
 class ManagementHandler extends Handler
 {
@@ -48,7 +51,6 @@ class ManagementHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -164,7 +166,6 @@ class ManagementHandler extends Handler
         $temporaryFileApiUrl = $dispatcher->url($request, PKPApplication::ROUTE_API, $context->getPath(), 'temporaryFiles');
         $publicFileApiUrl = $dispatcher->url($request, PKPApplication::ROUTE_API, $context->getPath(), '_uploadPublicFile');
 
-        import('classes.file.PublicFileManager');
         $publicFileManager = new PublicFileManager();
         $baseUrl = $request->getBaseUrl() . '/' . $publicFileManager->getContextFilesPath($context->getId());
 
@@ -184,7 +185,7 @@ class ManagementHandler extends Handler
         $dateTimeForm = new \PKP\components\forms\context\PKPDateTimeForm($contextApiUrl, $locales, $context);
 
         $templateMgr->setConstants([
-            'FORM_ANNOUNCEMENT_SETTINGS',
+            'FORM_ANNOUNCEMENT_SETTINGS' => FORM_ANNOUNCEMENT_SETTINGS,
         ]);
 
         $templateMgr->setState([
@@ -306,7 +307,7 @@ class ManagementHandler extends Handler
 
         $paymentSettingsForm = new \PKP\components\forms\context\PKPPaymentSettingsForm($paymentsUrl, $locales, $context);
         $templateMgr->setConstants([
-            'FORM_PAYMENT_SETTINGS',
+            'FORM_PAYMENT_SETTINGS' => FORM_PAYMENT_SETTINGS,
         ]);
 
         $templateMgr->setState([
@@ -407,7 +408,7 @@ class ManagementHandler extends Handler
         ]);
 
         $templateMgr->setConstants([
-            'FORM_NOTIFY_USERS',
+            'FORM_NOTIFY_USERS' => FORM_NOTIFY_USERS,
         ]);
 
         $templateMgr->setState([

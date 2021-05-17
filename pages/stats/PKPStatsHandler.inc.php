@@ -13,10 +13,13 @@
  * @brief Handle requests for statistics pages.
  */
 
-import('classes.handler.Handler');
-import('classes.statistics.StatisticsHelper');
-
 use APP\core\Request;
+use APP\handler\Handler;
+
+use APP\statistics\StatisticsHelper;
+use APP\template\TemplateManager;
+use PKP\security\authorization\ContextAccessPolicy;
+use PKP\statistics\PKPStatisticsHelper;
 
 class PKPStatsHandler extends Handler
 {
@@ -44,7 +47,6 @@ class PKPStatsHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -238,7 +240,7 @@ class PKPStatsHandler extends Handler
         $dateEnd = date('Y-m-d', strtotime('yesterday'));
         $count = 30;
 
-        $timeline = Services::get('stats')->getTimeline(STATISTICS_DIMENSION_DAY, [
+        $timeline = Services::get('stats')->getTimeline(PKPStatisticsHelper::STATISTICS_DIMENSION_DAY, [
             'assocTypes' => ASSOC_TYPE_SUBMISSION,
             'contextIds' => $context->getId(),
             'count' => $count,
@@ -250,7 +252,7 @@ class PKPStatsHandler extends Handler
             $dispatcher->url($request, PKPApplication::ROUTE_API, $context->getPath(), 'stats/publications'),
             [
                 'timeline' => $timeline,
-                'timelineInterval' => STATISTICS_DIMENSION_DAY,
+                'timelineInterval' => PKPStatisticsHelper::STATISTICS_DIMENSION_DAY,
                 'timelineType' => 'abstract',
                 'tableColumns' => [
                     [
@@ -324,7 +326,7 @@ class PKPStatsHandler extends Handler
         $templateMgr->assign([
             'pageComponent' => 'StatsPublicationsPage',
             'pageTitle' => __('stats.publicationStats'),
-            'pageWidth' => PAGE_WIDTH_WIDE,
+            'pageWidth' => TemplateManager::PAGE_WIDTH_WIDE,
         ]);
 
         $templateMgr->display('stats/publications.tpl');
@@ -506,7 +508,6 @@ class PKPStatsHandler extends Handler
 
         $router = $request->getRouter();
         $context = $router->getContext($request);
-        import('classes.statistics.StatisticsHelper');
         $statsHelper = new StatisticsHelper();
 
         $metricType = $request->getUserVar('metricType');
@@ -554,14 +555,14 @@ class PKPStatsHandler extends Handler
                 $columnNames[$column] = $allColumnNames[$column];
             }
 
-            if ($column == STATISTICS_DIMENSION_ASSOC_TYPE && in_array(STATISTICS_DIMENSION_ASSOC_ID, $columns)) {
+            if ($column == PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_TYPE && in_array(PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_ID, $columns)) {
                 $columnNames['common.title'] = __('common.title');
             }
         }
 
         // Make sure the metric column will always be present.
-        if (!in_array(STATISTICS_METRIC, $columnNames)) {
-            $columnNames[STATISTICS_METRIC] = $allColumnNames[STATISTICS_METRIC];
+        if (!in_array(PKPStatisticsHelper::STATISTICS_METRIC, $columnNames)) {
+            $columnNames[PKPStatisticsHelper::STATISTICS_METRIC] = $allColumnNames[PKPStatisticsHelper::STATISTICS_METRIC];
         }
 
         header('content-type: text/comma-separated-values');
@@ -596,34 +597,34 @@ class PKPStatsHandler extends Handler
 
                 switch ($key) {
                     case 'common.title':
-                        $assocId = $record[STATISTICS_DIMENSION_ASSOC_ID];
-                        $assocType = $record[STATISTICS_DIMENSION_ASSOC_TYPE];
+                        $assocId = $record[PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_ID];
+                        $assocType = $record[PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_TYPE];
                         $row[] = $this->getObjectTitle($assocId, $assocType);
                         break;
-                    case STATISTICS_DIMENSION_ASSOC_TYPE:
-                        $assocType = $record[STATISTICS_DIMENSION_ASSOC_TYPE];
+                    case PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_TYPE:
+                        $assocType = $record[PKPStatisticsHelper::STATISTICS_DIMENSION_ASSOC_TYPE];
                         $row[] = $statsHelper->getObjectTypeString($assocType);
                         break;
-                    case STATISTICS_DIMENSION_CONTEXT_ID:
-                        $assocId = $record[STATISTICS_DIMENSION_CONTEXT_ID];
+                    case PKPStatisticsHelper::STATISTICS_DIMENSION_CONTEXT_ID:
+                        $assocId = $record[PKPStatisticsHelper::STATISTICS_DIMENSION_CONTEXT_ID];
                         $assocType = Application::getContextAssocType();
                         $row[] = $this->getObjectTitle($assocId, $assocType);
                         break;
-                    case STATISTICS_DIMENSION_SUBMISSION_ID:
-                        if (isset($record[STATISTICS_DIMENSION_SUBMISSION_ID])) {
-                            $assocId = $record[STATISTICS_DIMENSION_SUBMISSION_ID];
+                    case PKPStatisticsHelper::STATISTICS_DIMENSION_SUBMISSION_ID:
+                        if (isset($record[PKPStatisticsHelper::STATISTICS_DIMENSION_SUBMISSION_ID])) {
+                            $assocId = $record[PKPStatisticsHelper::STATISTICS_DIMENSION_SUBMISSION_ID];
                             $assocType = ASSOC_TYPE_SUBMISSION;
                             $row[] = $this->getObjectTitle($assocId, $assocType);
                         } else {
                             $row[] = '';
                         }
                         break;
-                    case STATISTICS_DIMENSION_REGION:
-                        if (isset($record[STATISTICS_DIMENSION_REGION]) && isset($record[STATISTICS_DIMENSION_COUNTRY])) {
+                    case PKPStatisticsHelper::STATISTICS_DIMENSION_REGION:
+                        if (isset($record[PKPStatisticsHelper::STATISTICS_DIMENSION_REGION]) && isset($record[PKPStatisticsHelper::STATISTICS_DIMENSION_COUNTRY])) {
                             $geoLocationTool = $statsHelper->getGeoLocationTool();
                             if ($geoLocationTool) {
-                                $regions = $geoLocationTool->getRegions($record[STATISTICS_DIMENSION_COUNTRY]);
-                                $regionId = $record[STATISTICS_DIMENSION_REGION];
+                                $regions = $geoLocationTool->getRegions($record[PKPStatisticsHelper::STATISTICS_DIMENSION_COUNTRY]);
+                                $regionId = $record[PKPStatisticsHelper::STATISTICS_DIMENSION_REGION];
                                 if (strlen($regionId) == 1) {
                                     $regionId = '0' . $regionId;
                                 }
@@ -635,10 +636,10 @@ class PKPStatsHandler extends Handler
                         }
                         $row[] = '';
                         break;
-                    case STATISTICS_DIMENSION_PKP_SECTION_ID:
+                    case PKPStatisticsHelper::STATISTICS_DIMENSION_PKP_SECTION_ID:
                         $sectionId = null;
-                        if (isset($record[STATISTICS_DIMENSION_PKP_SECTION_ID])) {
-                            $sectionId = $record[STATISTICS_DIMENSION_PKP_SECTION_ID];
+                        if (isset($record[PKPStatisticsHelper::STATISTICS_DIMENSION_PKP_SECTION_ID])) {
+                            $sectionId = $record[PKPStatisticsHelper::STATISTICS_DIMENSION_PKP_SECTION_ID];
                         }
                         if ($sectionId) {
                             $row[] = $this->getObjectTitle($sectionId, ASSOC_TYPE_SECTION);
@@ -646,7 +647,7 @@ class PKPStatsHandler extends Handler
                             $row[] = '';
                         }
                         break;
-                    case STATISTICS_DIMENSION_FILE_TYPE:
+                    case PKPStatisticsHelper::STATISTICS_DIMENSION_FILE_TYPE:
                         if ($record[$key]) {
                             $row[] = $statsHelper->getFileTypeString($record[$key]);
                         } else {

@@ -13,7 +13,10 @@
  * @brief Handle requests for context-level about functions.
  */
 
-import('classes.handler.Handler');
+use APP\handler\Handler;
+
+use APP\template\TemplateManager;
+use PKP\security\authorization\ContextRequiredPolicy;
 
 class AboutContextHandler extends Handler
 {
@@ -34,10 +37,9 @@ class AboutContextHandler extends Handler
         $context = $request->getContext();
         if (!$context || !$context->getData('restrictSiteAccess')) {
             $templateMgr = TemplateManager::getManager($request);
-            $templateMgr->setCacheability(CACHEABILITY_PUBLIC);
+            $templateMgr->setCacheability(TemplateManager::CACHEABILITY_PUBLIC);
         }
 
-        import('lib.pkp.classes.security.authorization.ContextRequiredPolicy');
         $this->addPolicy(new ContextRequiredPolicy($request));
         return parent::authorize($request, $args, $roleAssignments);
     }

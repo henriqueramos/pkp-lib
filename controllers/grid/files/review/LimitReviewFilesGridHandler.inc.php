@@ -14,6 +14,9 @@
  *   to a particular reviewer.
  */
 
+use PKP\controllers\grid\files\FilesGridCapabilities;
+use PKP\security\authorization\internal\ReviewAssignmentRequiredPolicy;
+use PKP\security\authorization\ReviewStageAccessPolicy;
 use PKP\submission\SubmissionFile;
 
 import('lib.pkp.controllers.grid.files.fileList.SelectableFileListGridHandler');
@@ -32,7 +35,7 @@ class LimitReviewFilesGridHandler extends SelectableFileListGridHandler
         parent::__construct(
             new ReviewGridDataProvider($fileStage),
             null,
-            FILE_GRID_VIEW_NOTES
+            FilesGridCapabilities::FILE_GRID_VIEW_NOTES
         );
 
         $this->addRoleAssignment(
@@ -56,11 +59,9 @@ class LimitReviewFilesGridHandler extends SelectableFileListGridHandler
             // Add the required policies:
 
             // 1) Review stage access policy (fetches submission in context)
-            import('lib.pkp.classes.security.authorization.ReviewStageAccessPolicy');
             $this->addPolicy(new ReviewStageAccessPolicy($request, $args, $roleAssignments, 'submissionId', $request->getUserVar('stageId')));
 
             // 2) Review assignment
-            import('lib.pkp.classes.security.authorization.internal.ReviewAssignmentRequiredPolicy');
             $this->addPolicy(new ReviewAssignmentRequiredPolicy($request, $args, 'reviewAssignmentId', ['fetchGrid', 'fetchRow']));
         }
         return parent::authorize($request, $args, $roleAssignments);

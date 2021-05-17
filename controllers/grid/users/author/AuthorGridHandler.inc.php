@@ -13,15 +13,20 @@
  * @brief base PKP class to handle author grid requests.
  */
 
-// import grid base classes
-import('lib.pkp.classes.controllers.grid.GridHandler');
 import('lib.pkp.controllers.grid.users.author.PKPAuthorGridCellProvider');
 import('lib.pkp.controllers.grid.users.author.AuthorGridRow');
 
-// Link action & modal classes
-import('lib.pkp.classes.linkAction.request.AjaxModal');
-
+use APP\notification\NotificationManager;
+use PKP\controllers\grid\feature\OrderGridItemsFeature;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 use PKP\core\JSONMessage;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\PublicationAccessPolicy;
+
+use PKP\submission\PKPSubmission;
 
 class AuthorGridHandler extends GridHandler
 {
@@ -98,7 +103,6 @@ class AuthorGridHandler extends GridHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.PublicationAccessPolicy');
         $this->addPolicy(new PublicationAccessPolicy($request, $args, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -154,7 +158,7 @@ class AuthorGridHandler extends GridHandler
                 null,
                 null,
                 $cellProvider,
-                ['width' => 40, 'alignment' => COLUMN_ALIGNMENT_LEFT]
+                ['width' => 40, 'alignment' => GridColumn::COLUMN_ALIGNMENT_LEFT]
             )
         );
         $this->addColumn(
@@ -206,7 +210,6 @@ class AuthorGridHandler extends GridHandler
     {
         $features = parent::initFeatures($request, $args);
         if ($this->canAdminister($request->getUser())) {
-            import('lib.pkp.classes.controllers.grid.feature.OrderGridItemsFeature');
             $features[] = new OrderGridItemsFeature();
         }
         return $features;
@@ -273,7 +276,7 @@ class AuthorGridHandler extends GridHandler
         $submission = $this->getSubmission();
         $userRoles = $this->getAuthorizedContextObject(ASSOC_TYPE_USER_ROLES);
 
-        if ($publication->getData('status') === STATUS_PUBLISHED) {
+        if ($publication->getData('status') === PKPSubmission::STATUS_PUBLISHED) {
             return false;
         }
 
@@ -391,7 +394,7 @@ class AuthorGridHandler extends GridHandler
             // Create trivial notification.
             $currentUser = $request->getUser();
             $notificationMgr = new NotificationManager();
-            $notificationMgr->createTrivialNotification($currentUser->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => $notificationContent]);
+            $notificationMgr->createTrivialNotification($currentUser->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => $notificationContent]);
 
             // Prepare the grid row data
             $row = $this->getRowInstance();

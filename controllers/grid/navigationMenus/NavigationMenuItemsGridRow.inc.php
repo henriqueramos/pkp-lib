@@ -13,8 +13,9 @@
  * @brief NavigationMenuItem grid row definition
  */
 
-import('lib.pkp.classes.controllers.grid.GridRow');
-import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
+use PKP\controllers\grid\GridRow;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 
 class NavigationMenuItemsGridRow extends GridRow
 {
@@ -31,7 +32,7 @@ class NavigationMenuItemsGridRow extends GridRow
         parent::initialize($request, $template);
 
         $element = $this->getData();
-        assert(is_a($element, 'NavigationMenuItem'));
+        assert($element instanceof \PKP\navigationMenu\NavigationMenuItem);
 
         $rowId = $this->getId();
 

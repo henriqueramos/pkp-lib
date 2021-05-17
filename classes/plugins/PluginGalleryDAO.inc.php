@@ -15,12 +15,19 @@
  * @brief Operations for retrieving content from the PKP plugin gallery.
  */
 
-import('lib.pkp.classes.plugins.GalleryPlugin');
+namespace PKP\plugins;
 
-define('PLUGIN_GALLERY_XML_URL', 'https://pkp.sfu.ca/ojs/xml/plugins.xml');
+use APP\core\Application;
+
+use DOMDocument;
+use DOMElement;
+
+use PKP\core\PKPString;
 
 class PluginGalleryDAO extends \PKP\db\DAO
 {
+    public const PLUGIN_GALLERY_XML_URL = 'https://pkp.sfu.ca/ojs/xml/plugins.xml';
+
     /**
      * Get a set of GalleryPlugin objects describing the available
      * compatible plugins in their newest versions.
@@ -91,7 +98,7 @@ class PluginGalleryDAO extends \PKP\db\DAO
         $doc = $element->ownerDocument;
         $foundRelease = false;
         for ($n = $element->firstChild; $n; $n = $n->nextSibling) {
-            if (!is_a($n, 'DOMElement')) {
+            if (!($n instanceof DOMElement)) {
                 continue;
             }
             switch ($n->tagName) {
@@ -140,7 +147,7 @@ class PluginGalleryDAO extends \PKP\db\DAO
     public function _handleMaintainer($element, $plugin)
     {
         for ($n = $element->firstChild; $n; $n = $n->nextSibling) {
-            if (!is_a($n, 'DOMElement')) {
+            if (!($n instanceof DOMElement)) {
                 continue;
             }
             switch ($n->tagName) {
@@ -176,7 +183,7 @@ class PluginGalleryDAO extends \PKP\db\DAO
 
         $compatible = false;
         for ($n = $element->firstChild; $n; $n = $n->nextSibling) {
-            if (!is_a($n, 'DOMElement')) {
+            if (!($n instanceof DOMElement)) {
                 continue;
             }
             switch ($n->tagName) {
@@ -233,7 +240,7 @@ class PluginGalleryDAO extends \PKP\db\DAO
         }
 
         for ($n = $element->firstChild; $n; $n = $n->nextSibling) {
-            if (!is_a($n, 'DOMElement')) {
+            if (!($n instanceof DOMElement)) {
                 continue;
             }
             switch ($n->tagName) {
@@ -250,4 +257,9 @@ class PluginGalleryDAO extends \PKP\db\DAO
         // No applicable compatibility statement found.
         return false;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\plugins\PluginGalleryDAO', '\PluginGalleryDAO');
+    define('PLUGIN_GALLERY_XML_URL', \PluginGalleryDAO::PLUGIN_GALLERY_XML_URL);
 }

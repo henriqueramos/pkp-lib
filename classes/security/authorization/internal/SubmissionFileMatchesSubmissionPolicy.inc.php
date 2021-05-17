@@ -15,7 +15,12 @@
  * authorization context.
  */
 
-import('lib.pkp.classes.security.authorization.internal.SubmissionFileBaseAccessPolicy');
+namespace PKP\security\authorization\internal;
+
+use APP\submission\Submission;
+use PKP\security\authorization\AuthorizationPolicy;
+
+use PKP\submission\SubmissionFile;
 
 class SubmissionFileMatchesSubmissionPolicy extends SubmissionFileBaseAccessPolicy
 {
@@ -41,14 +46,14 @@ class SubmissionFileMatchesSubmissionPolicy extends SubmissionFileBaseAccessPoli
         // Get the submission file
         $request = $this->getRequest();
         $submissionFile = $this->getSubmissionFile($request);
-        if (!is_a($submissionFile, 'SubmissionFile')) {
-            return AUTHORIZATION_DENY;
+        if (!$submissionFile instanceof SubmissionFile) {
+            return AuthorizationPolicy::AUTHORIZATION_DENY;
         }
 
         // Get the submission
         $submission = $this->getAuthorizedContextObject(ASSOC_TYPE_SUBMISSION);
-        if (!is_a($submission, 'Submission')) {
-            return AUTHORIZATION_DENY;
+        if (!$submission instanceof Submission) {
+            return AuthorizationPolicy::AUTHORIZATION_DENY;
         }
 
 
@@ -64,9 +69,13 @@ class SubmissionFileMatchesSubmissionPolicy extends SubmissionFileBaseAccessPoli
 
             // Save the submission file to the authorization context.
             $this->addAuthorizedContextObject(ASSOC_TYPE_SUBMISSION_FILE, $submissionFile);
-            return AUTHORIZATION_PERMIT;
+            return AuthorizationPolicy::AUTHORIZATION_PERMIT;
         } else {
-            return AUTHORIZATION_DENY;
+            return AuthorizationPolicy::AUTHORIZATION_DENY;
         }
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\security\authorization\internal\SubmissionFileMatchesSubmissionPolicy', '\SubmissionFileMatchesSubmissionPolicy');
 }

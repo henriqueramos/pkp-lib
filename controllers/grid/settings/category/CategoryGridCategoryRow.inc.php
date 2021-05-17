@@ -13,10 +13,11 @@
  * @brief Category grid category row definition
  */
 
-import('lib.pkp.classes.controllers.grid.GridCategoryRow');
-
-// Link actions
-import('lib.pkp.classes.linkAction.request.AjaxModal');
+use PKP\controller\grid\GridRow;
+use PKP\controllers\grid\GridCategoryRow;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 
 class CategoryGridCategoryRow extends GridCategoryRow
 {
@@ -43,7 +44,6 @@ class CategoryGridCategoryRow extends GridCategoryRow
             $categoryDao = DAORegistry::getDAO('CategoryDAO'); /** @var CategoryDAO $categoryDao */
             $childCategories = $categoryDao->getByParentId($categoryId);
             if (!$childCategories->next()) {
-                import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
                 $this->addAction(
                     new LinkAction(
                         'deleteCategory',
@@ -68,7 +68,7 @@ class CategoryGridCategoryRow extends GridCategoryRow
                     'modal_edit'
                 ),
                 $category->getLocalizedTitle()
-            ), GRID_ACTION_POSITION_ROW_CLICK);
+            ), GridRow::GRID_ACTION_POSITION_ROW_CLICK);
         }
     }
 

@@ -13,9 +13,12 @@
  * @brief Form for sending an email to a user
  */
 
-import('lib.pkp.classes.form.Form');
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use PKP\form\Form;
 
 use PKP\mail\MailTemplate;
+use PKP\notification\PKPNotification;
 
 class UserEmailForm extends Form
 {
@@ -33,10 +36,10 @@ class UserEmailForm extends Form
 
         $this->userId = (int) $userId;
 
-        $this->addCheck(new FormValidator($this, 'subject', 'required', 'email.subjectRequired'));
-        $this->addCheck(new FormValidator($this, 'message', 'required', 'email.bodyRequired'));
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'subject', 'required', 'email.subjectRequired'));
+        $this->addCheck(new \PKP\form\validation\FormValidator($this, 'message', 'required', 'email.bodyRequired'));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     /**
@@ -95,9 +98,8 @@ class UserEmailForm extends Form
         parent::execute(...$functionArgs);
 
         if (!$email->send()) {
-            import('classes.notification.NotificationManager');
             $notificationMgr = new NotificationManager();
-            $notificationMgr->createTrivialNotification($request->getUser()->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
+            $notificationMgr->createTrivialNotification($request->getUser()->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
         }
     }
 }

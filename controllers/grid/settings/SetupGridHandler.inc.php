@@ -13,9 +13,10 @@
  * @brief Base class for setup grid handlers
  */
 
-import('lib.pkp.classes.controllers.grid.GridHandler');
-
+use PKP\controllers\grid\GridHandler;
 use PKP\core\JSONMessage;
+use PKP\file\TemporaryFileManager;
+use PKP\security\authorization\ContextAccessPolicy;
 
 class SetupGridHandler extends GridHandler
 {
@@ -51,7 +52,6 @@ class SetupGridHandler extends GridHandler
     public function authorize($request, &$args, $roleAssignments, $contextRequired = true)
     {
         if ($contextRequired) {
-            import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
             $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
         }
         return parent::authorize($request, $args, $roleAssignments);
@@ -69,7 +69,6 @@ class SetupGridHandler extends GridHandler
         $context = $request->getContext();
         $user = $request->getUser();
 
-        import('lib.pkp.classes.file.TemporaryFileManager');
         $temporaryFileManager = new TemporaryFileManager();
         $temporaryFile = $temporaryFileManager->handleUpload('uploadedFile', $user->getId());
         if ($temporaryFile) {

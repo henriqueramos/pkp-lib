@@ -13,9 +13,9 @@
  * @brief Base class that converts a submissionFile to a Native XML document
  */
 
-use PKP\submission\SubmissionFile;
-
 import('lib.pkp.plugins.importexport.native.filter.NativeExportFilter');
+
+use PKP\submission\SubmissionFile;
 
 class SubmissionFileNativeXmlFilter extends NativeExportFilter
 {

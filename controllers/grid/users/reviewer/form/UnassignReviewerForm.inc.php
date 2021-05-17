@@ -14,6 +14,12 @@
 
 import('lib.pkp.controllers.grid.users.reviewer.form.ReviewerNotifyActionForm');
 
+use APP\log\SubmissionEventLogEntry;
+use APP\notification\NotificationManager;
+
+use PKP\log\SubmissionLog;
+use PKP\notification\PKPNotification;
+
 class UnassignReviewerForm extends ReviewerNotifyActionForm
 {
     /**
@@ -79,18 +85,16 @@ class UnassignReviewerForm extends ReviewerNotifyActionForm
                 ASSOC_TYPE_REVIEW_ASSIGNMENT,
                 $reviewAssignment->getId(),
                 $reviewAssignment->getReviewerId(),
-                NOTIFICATION_TYPE_REVIEW_ASSIGNMENT
+                PKPNotification::NOTIFICATION_TYPE_REVIEW_ASSIGNMENT
             );
 
             // Insert a trivial notification to indicate the reviewer was removed successfully.
             $currentUser = $request->getUser();
             $notificationMgr = new NotificationManager();
-            $notificationMgr->createTrivialNotification($currentUser->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => $reviewAssignment->getDateConfirmed() ? __('notification.cancelledReviewer') : __('notification.removedReviewer')]);
+            $notificationMgr->createTrivialNotification($currentUser->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => $reviewAssignment->getDateConfirmed() ? __('notification.cancelledReviewer') : __('notification.removedReviewer')]);
 
             // Add log
-            import('lib.pkp.classes.log.SubmissionLog');
-            import('classes.log.SubmissionEventLogEntry');
-            SubmissionLog::logEvent($request, $submission, SUBMISSION_LOG_REVIEW_CLEAR, 'log.review.reviewCleared', ['reviewAssignmentId' => $reviewAssignment->getId(), 'reviewerName' => $reviewer->getFullName(), 'submissionId' => $submission->getId(), 'stageId' => $reviewAssignment->getStageId(), 'round' => $reviewAssignment->getRound()]);
+            SubmissionLog::logEvent($request, $submission, SubmissionEventLogEntry::SUBMISSION_LOG_REVIEW_CLEAR, 'log.review.reviewCleared', ['reviewAssignmentId' => $reviewAssignment->getId(), 'reviewerName' => $reviewer->getFullName(), 'submissionId' => $submission->getId(), 'stageId' => $reviewAssignment->getStageId(), 'round' => $reviewAssignment->getRound()]);
 
             return true;
         }

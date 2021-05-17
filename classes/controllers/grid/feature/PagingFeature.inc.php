@@ -14,7 +14,9 @@
  *
  */
 
-import('lib.pkp.classes.controllers.grid.feature.GeneralPagingFeature');
+namespace PKP\controllers\grid\feature;
+
+use APP\template\TemplateManager;
 
 class PagingFeature extends GeneralPagingFeature
 {
@@ -155,4 +157,8 @@ class PagingFeature extends GeneralPagingFeature
             )
         );
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\grid\feature\PagingFeature', '\PagingFeature');
 }

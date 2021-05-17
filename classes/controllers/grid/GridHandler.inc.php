@@ -36,26 +36,24 @@
  * AnnouncementTypeGridHandler.
  */
 
-// Import the base Handler.
-import('lib.pkp.classes.handler.PKPHandler');
+namespace PKP\controllers\grid;
 
-// Import action class.
-import('lib.pkp.classes.linkAction.LinkAction');
-
-// Import grid classes.
-import('lib.pkp.classes.controllers.grid.GridColumn');
-import('lib.pkp.classes.controllers.grid.GridRow');
-
-// Grid specific action positions.
-define('GRID_ACTION_POSITION_DEFAULT', 'default');
-define('GRID_ACTION_POSITION_ABOVE', 'above');
-define('GRID_ACTION_POSITION_LASTCOL', 'lastcol');
-define('GRID_ACTION_POSITION_BELOW', 'below');
-
+use APP\i18n\AppLocale;
+use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
+use PKP\handler\PKPHandler;
+use PKP\linkAction\LinkAction;
+
+use PKP\linkAction\request\NullAction;
+use PKP\plugins\HookRegistry;
 
 class GridHandler extends PKPHandler
 {
+    public const GRID_ACTION_POSITION_DEFAULT = 'default';
+    public const GRID_ACTION_POSITION_ABOVE = 'above';
+    public const GRID_ACTION_POSITION_LASTCOL = 'lastcol';
+    public const GRID_ACTION_POSITION_BELOW = 'below';
+
     /** @var string grid title locale key */
     public $_title = '';
 
@@ -73,7 +71,7 @@ class GridHandler extends PKPHandler
      *  the position of the action in the grid, the second key
      *  represents the action id.
      */
-    public $_actions = [GRID_ACTION_POSITION_DEFAULT => []];
+    public $_actions = [self::GRID_ACTION_POSITION_DEFAULT => []];
 
     /** @var array The GridColumns of this grid. */
     public $_columns = [];
@@ -236,7 +234,7 @@ class GridHandler extends PKPHandler
      *
      * @return array The LinkActions for the given position.
      */
-    public function getActions($position = GRID_ACTION_POSITION_ABOVE)
+    public function getActions($position = self::GRID_ACTION_POSITION_ABOVE)
     {
         if (!isset($this->_actions[$position])) {
             return [];
@@ -250,7 +248,7 @@ class GridHandler extends PKPHandler
      * @param $action Mixed a single action.
      * @param $position string The position of the action.
      */
-    public function addAction($action, $position = GRID_ACTION_POSITION_ABOVE)
+    public function addAction($action, $position = self::GRID_ACTION_POSITION_ABOVE)
     {
         if (!isset($this->_actions[$position])) {
             $this->_actions[$position] = [];
@@ -570,7 +568,7 @@ class GridHandler extends PKPHandler
      * @param $request PKPRequest
      * @param $args array
      *
-     * @return GridRow the requested grid row, already
+     * @return \PKP\controllers\grid\GridRow the requested grid row, already
      *  configured with id and data or null if the row
      *  could not been found.
      */
@@ -611,7 +609,7 @@ class GridHandler extends PKPHandler
      * Render the passed row and return its markup.
      *
      * @param $request PKPRequest
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      *
      * @return string
      */
@@ -677,7 +675,6 @@ class GridHandler extends PKPHandler
         AppLocale::requireComponents(LOCALE_COMPONENT_PKP_GRID, LOCALE_COMPONENT_APP_COMMON);
 
         if ($this->getFilterForm() && $this->isFilterFormCollapsible()) {
-            import('lib.pkp.classes.linkAction.request.NullAction');
             $this->addAction(
                 new LinkAction(
                     'search',
@@ -896,7 +893,7 @@ class GridHandler extends PKPHandler
      * overridden by subclasses if they want to
      * provide a custom row definition.
      *
-     * @return GridRow
+     * @return \PKP\controllers\grid\GridRow
      */
     protected function getRowInstance()
     {
@@ -1087,7 +1084,8 @@ class GridHandler extends PKPHandler
     protected function initFeatures($request, $args)
     {
         $returner = [];
-        HookRegistry::call(strtolower_codesafe(get_class($this) . '::initFeatures'), [$this, $request, $args, &$returner]);
+        $classNameParts = explode('\\', get_class($this)); // Separate namespace info from class name
+        HookRegistry::call(strtolower_codesafe(end($classNameParts) . '::initFeatures'), [$this, $request, $args, &$returner]);
         return $returner;
     }
 
@@ -1142,7 +1140,7 @@ class GridHandler extends PKPHandler
      * before you call this method.
      *
      * @param $request PKPRequest
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      *
      * @return string the row HTML
      */
@@ -1204,7 +1202,7 @@ class GridHandler extends PKPHandler
      * @param $element mixed
      * @param $isModified boolean optional
      *
-     * @return GridRow
+     * @return \PKP\controllers\grid\GridRow
      */
     private function _getInitializedRowInstance($request, $elementId, &$element, $isModified = false)
     {
@@ -1229,7 +1227,7 @@ class GridHandler extends PKPHandler
      * before you call this method.
      *
      * @param $request PKPRequest
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return string the cell HTML
@@ -1240,7 +1238,6 @@ class GridHandler extends PKPHandler
         // override the assigned GridCellProvider and provide the default.
         $element = & $row->getData();
         if (is_null($element) && $row->getIsModified()) {
-            import('lib.pkp.classes.controllers.grid.GridCellProvider');
             $cellProvider = new GridCellProvider();
             return $cellProvider->render($request, $row, $column);
         }
@@ -1335,5 +1332,17 @@ class GridHandler extends PKPHandler
             assert(is_a($feature, 'GridFeature'));
             $this->_features[$feature->getId()] = $feature;
         }
+    }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\controllers\grid\GridHandler', '\GridHandler');
+    foreach ([
+        'GRID_ACTION_POSITION_DEFAULT',
+        'GRID_ACTION_POSITION_ABOVE',
+        'GRID_ACTION_POSITION_LASTCOL',
+        'GRID_ACTION_POSITION_BELOW',
+    ] as $constantName) {
+        define($constantName, constant('\GridHandler::' . $constantName));
     }
 }

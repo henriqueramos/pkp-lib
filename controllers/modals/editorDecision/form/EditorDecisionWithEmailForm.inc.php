@@ -13,10 +13,15 @@
  * @brief Base class for the editor decision forms.
  */
 
+use APP\file\LibraryFileManager;
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use APP\workflow\EditorDecisionActionsManager;
+
+use PKP\controllers\modals\editorDecision\form\EditorDecisionForm;
 use PKP\log\SubmissionEmailLogEntry;
 use PKP\mail\SubmissionMailTemplate;
-
-import('lib.pkp.classes.controllers.modals.editorDecision.form.EditorDecisionForm');
+use PKP\notification\PKPNotification;
 
 class EditorDecisionWithEmailForm extends EditorDecisionForm
 {
@@ -65,13 +70,13 @@ class EditorDecisionWithEmailForm extends EditorDecisionForm
         $user = $request->getUser();
 
         $emailKeys = [
-            SUBMISSION_EDITOR_DECISION_ACCEPT => 'EDITOR_DECISION_ACCEPT',
-            SUBMISSION_EDITOR_DECISION_DECLINE => 'EDITOR_DECISION_DECLINE',
-            SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE => 'EDITOR_DECISION_INITIAL_DECLINE',
-            SUBMISSION_EDITOR_DECISION_EXTERNAL_REVIEW => 'EDITOR_DECISION_SEND_TO_EXTERNAL',
-            SUBMISSION_EDITOR_DECISION_RESUBMIT => 'EDITOR_DECISION_RESUBMIT',
-            SUBMISSION_EDITOR_DECISION_PENDING_REVISIONS => 'EDITOR_DECISION_REVISIONS',
-            SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION => 'EDITOR_DECISION_SEND_TO_PRODUCTION',
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_ACCEPT => 'EDITOR_DECISION_ACCEPT',
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_DECLINE => 'EDITOR_DECISION_DECLINE',
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE => 'EDITOR_DECISION_INITIAL_DECLINE',
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_EXTERNAL_REVIEW => 'EDITOR_DECISION_SEND_TO_EXTERNAL',
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_RESUBMIT => 'EDITOR_DECISION_RESUBMIT',
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_PENDING_REVISIONS => 'EDITOR_DECISION_REVISIONS',
+            EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_SEND_TO_PRODUCTION => 'EDITOR_DECISION_SEND_TO_PRODUCTION',
         ];
 
         $email = new SubmissionMailTemplate($submission, $emailKeys[$this->getDecision()]);
@@ -311,7 +316,6 @@ class EditorDecisionWithEmailForm extends EditorDecisionForm
         }
 
         // Attach the selected Library files as attachments to the email.
-        import('classes.file.LibraryFileManager');
         $libraryFileDao = DAORegistry::getDAO('LibraryFileDAO'); /** @var LibraryFileDAO $libraryFileDao */
         $selectedLibraryFilesAttachments = $this->getData('selectedLibraryFiles');
         if (is_array($selectedLibraryFilesAttachments)) {
@@ -340,9 +344,8 @@ class EditorDecisionWithEmailForm extends EditorDecisionForm
                 'editorialContactSignature' => $user->getContactSignature(),
             ]);
             if (!$email->send($request)) {
-                import('classes.notification.NotificationManager');
                 $notificationMgr = new NotificationManager();
-                $notificationMgr->createTrivialNotification($request->getUser()->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
+                $notificationMgr->createTrivialNotification($request->getUser()->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
             }
         }
     }

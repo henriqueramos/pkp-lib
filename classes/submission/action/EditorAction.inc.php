@@ -13,8 +13,20 @@
  * @brief Editor actions.
  */
 
-// Access decision actions constants.
-import('classes.workflow.EditorDecisionActionsManager');
+namespace PKP\submission\action;
+
+use APP\i18n\AppLocale;
+use APP\notification\Notification;
+use APP\notification\NotificationManager;
+use APP\workflow\EditorDecisionActionsManager;
+use PKP\core\Core;
+use PKP\db\DAORegistry;
+use PKP\log\PKPSubmissionEventLogEntry;
+
+use PKP\log\SubmissionLog;
+use PKP\notification\PKPNotification;
+use PKP\plugins\HookRegistry;
+use PKP\submission\PKPSubmission;
 
 class EditorAction
 {
@@ -80,19 +92,17 @@ class EditorAction
 
             // Set a new submission status if necessary
             $submissionDao = DAORegistry::getDAO('SubmissionDAO'); /** @var SubmissionDAO $submissionDao */
-            if ($decision == SUBMISSION_EDITOR_DECISION_DECLINE || $decision == SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE) {
-                $submission->setStatus(STATUS_DECLINED);
+            if ($decision == EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_DECLINE || $decision == EditorDecisionActionsManager::SUBMISSION_EDITOR_DECISION_INITIAL_DECLINE) {
+                $submission->setStatus(PKPSubmission::STATUS_DECLINED);
                 $submissionDao->updateObject($submission);
-            } elseif ($submission->getStatus() == STATUS_DECLINED) {
-                $submission->setStatus(STATUS_QUEUED);
+            } elseif ($submission->getStatus() == PKPSubmission::STATUS_DECLINED) {
+                $submission->setStatus(PKPSubmission::STATUS_QUEUED);
                 $submissionDao->updateObject($submission);
             }
 
             // Add log entry
-            import('lib.pkp.classes.log.SubmissionLog');
-            import('lib.pkp.classes.log.PKPSubmissionEventLogEntry');
             AppLocale::requireComponents(LOCALE_COMPONENT_APP_COMMON, LOCALE_COMPONENT_APP_EDITOR);
-            $eventType = $recommendation ? SUBMISSION_LOG_EDITOR_RECOMMENDATION : SUBMISSION_LOG_EDITOR_DECISION;
+            $eventType = $recommendation ? PKPSubmissionEventLogEntry::SUBMISSION_LOG_EDITOR_RECOMMENDATION : PKPSubmissionEventLogEntry::SUBMISSION_LOG_EDITOR_DECISION;
             $logKey = $recommendation ? 'log.editor.recommendation' : 'log.editor.decision';
             SubmissionLog::logEvent($request, $submission, $eventType, $logKey, ['editorName' => $user->getFullName(), 'submissionId' => $submission->getId(), 'decision' => __($decisionLabels[$decision])]);
         }
@@ -146,19 +156,17 @@ class EditorAction
             $notificationMgr->createNotification(
                 $request,
                 $reviewerId,
-                NOTIFICATION_TYPE_REVIEW_ASSIGNMENT,
+                PKPNotification::NOTIFICATION_TYPE_REVIEW_ASSIGNMENT,
                 $submission->getContextId(),
                 ASSOC_TYPE_REVIEW_ASSIGNMENT,
                 $reviewAssignment->getId(),
-                NOTIFICATION_LEVEL_TASK,
+                Notification::NOTIFICATION_LEVEL_TASK,
                 null,
                 true
             );
 
             // Add log
-            import('lib.pkp.classes.log.SubmissionLog');
-            import('lib.pkp.classes.log.PKPSubmissionEventLogEntry');
-            SubmissionLog::logEvent($request, $submission, SUBMISSION_LOG_REVIEW_ASSIGN, 'log.review.reviewerAssigned', ['reviewAssignmentId' => $reviewAssignment->getId(), 'reviewerName' => $reviewer->getFullName(), 'submissionId' => $submission->getId(), 'stageId' => $stageId, 'round' => $round]);
+            SubmissionLog::logEvent($request, $submission, PKPSubmissionEventLogEntry::SUBMISSION_LOG_REVIEW_ASSIGN, 'log.review.reviewerAssigned', ['reviewAssignmentId' => $reviewAssignment->getId(), 'reviewerName' => $reviewer->getFullName(), 'submissionId' => $submission->getId(), 'stageId' => $stageId, 'round' => $round]);
         }
     }
 
@@ -200,12 +208,10 @@ class EditorAction
             // N.B. Only logging Date Due
             if ($logEntry) {
                 // Add log
-                import('lib.pkp.classes.log.SubmissionLog');
-                import('classes.log.SubmissionEventLogEntry');
                 SubmissionLog::logEvent(
                     $request,
                     $submission,
-                    SUBMISSION_LOG_REVIEW_SET_DUE_DATE,
+                    PKPSubmissionEventLogEntry::SUBMISSION_LOG_REVIEW_SET_DUE_DATE,
                     'log.review.reviewDueDateSet',
                     [
                         'reviewAssignmentId' => $reviewAssignment->getId(),
@@ -237,4 +243,8 @@ class EditorAction
         $submissionDao = DAORegistry::getDAO('SubmissionDAO'); /** @var SubmissionDAO $submissionDao */
         $submissionDao->updateObject($submission);
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\submission\action\EditorAction', '\EditorAction');
 }

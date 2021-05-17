@@ -13,9 +13,14 @@
  * @brief Form to edit user's API key settings.
  */
 
+use APP\notification\NotificationManager;
+
+use APP\template\TemplateManager;
 use Firebase\JWT\JWT;
 
 import('lib.pkp.classes.user.form.BaseProfileForm');
+
+use PKP\notification\PKPNotification;
 
 class APIProfileForm extends BaseProfileForm
 {
@@ -67,7 +72,7 @@ class APIProfileForm extends BaseProfileForm
             $notificationManager = new NotificationManager();
             $notificationManager->createTrivialNotification(
                 $user->getId(),
-                NOTIFICATION_TYPE_WARNING,
+                PKPNotification::NOTIFICATION_TYPE_WARNING,
                 [
                     'contents' => __('user.apiKey.secretRequired'),
                 ]

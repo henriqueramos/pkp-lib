@@ -13,12 +13,20 @@
  * @brief Abstract class for theme plugins
  */
 
-import('lib.pkp.classes.plugins.LazyLoadPlugin');
+namespace PKP\plugins;
 
 define('LESS_FILENAME_SUFFIX', '.less');
 define('THEME_OPTION_PREFIX', 'themeOption_');
 
 use APP\core\Application;
+
+use APP\template\TemplateManager;
+use Exception;
+use PKP\context\Context;
+use PKP\core\Core;
+
+use PKP\core\PKPApplication;
+use PKP\db\DAORegistry;
 
 abstract class ThemePlugin extends LazyLoadPlugin
 {
@@ -153,7 +161,7 @@ abstract class ThemePlugin extends LazyLoadPlugin
         }
         $request = Application::get()->getRequest();
         $context = $request->getContext();
-        if (is_a($context, 'Context')) {
+        if ($context instanceof Context) {
             $activeTheme = $context->getData('themePluginPath');
         } else {
             $site = $request->getSite();
@@ -296,7 +304,7 @@ abstract class ThemePlugin extends LazyLoadPlugin
      *   `context` string Whether to load this on the `frontend` or `backend`.
      *      default: frontend
      *   `priority` int Controls order in which scripts are printed
-     *      default: STYLE_SEQUENCE_NORMAL
+     *      default: TemplateManager::STYLE_SEQUENCE_NORMAL
      *   `inline` bool Whether the $script value should be output directly as
      *      script data. Used to pass backend data to the scripts.
      */
@@ -720,7 +728,7 @@ abstract class ThemePlugin extends LazyLoadPlugin
     {
         $parent = PluginRegistry::getPlugin('themes', $parent);
 
-        if (!is_a($parent, 'ThemePlugin')) {
+        if (!($parent instanceof self)) {
             return;
         }
 
@@ -736,7 +744,7 @@ abstract class ThemePlugin extends LazyLoadPlugin
     {
 
         // Register parent theme template directory
-        if (isset($this->parent) && is_a($this->parent, 'ThemePlugin')) {
+        if (isset($this->parent) && $this->parent instanceof self) {
             $this->parent->_registerTemplates();
         }
 
@@ -869,4 +877,8 @@ abstract class ThemePlugin extends LazyLoadPlugin
         );
         return $contrast < $limit;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\plugins\ThemePlugin', '\ThemePlugin');
 }

@@ -15,7 +15,9 @@
 // import grid base classes
 import('lib.pkp.controllers.grid.files.SelectableSubmissionFileListCategoryGridHandler');
 
+use PKP\controllers\grid\files\FilesGridCapabilities;
 use PKP\core\JSONMessage;
+use PKP\notification\PKPNotification;
 use PKP\submission\SubmissionFile;
 
 class ManageReviewFilesGridHandler extends SelectableSubmissionFileListCategoryGridHandler
@@ -36,7 +38,7 @@ class ManageReviewFilesGridHandler extends SelectableSubmissionFileListCategoryG
         parent::__construct(
             new ReviewCategoryGridDataProvider($fileStage),
             null,
-            FILE_GRID_ADD | FILE_GRID_VIEW_NOTES
+            FilesGridCapabilities::FILE_GRID_ADD | FilesGridCapabilities::FILE_GRID_VIEW_NOTES
         );
 
         $this->addRoleAssignment(
@@ -76,7 +78,7 @@ class ManageReviewFilesGridHandler extends SelectableSubmissionFileListCategoryG
 
             $this->setupTemplate($request);
             $user = $request->getUser();
-            NotificationManager::createTrivialNotification($user->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.updatedReviewFiles')]);
+            NotificationManager::createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.updatedReviewFiles')]);
 
             // Let the calling grid reload itself
             return \PKP\db\DAO::getDataChangedEvent();

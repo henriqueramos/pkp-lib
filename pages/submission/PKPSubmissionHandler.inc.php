@@ -13,10 +13,14 @@
  * @brief Base handler for submission requests.
  */
 
-import('classes.handler.Handler');
-
 use APP\core\Services;
+use APP\handler\Handler;
+use APP\submission\Submission;
+
+use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
+use PKP\security\authorization\SubmissionAccessPolicy;
+use PKP\security\authorization\UserRequiredPolicy;
 
 abstract class PKPSubmissionHandler extends Handler
 {
@@ -41,12 +45,10 @@ abstract class PKPSubmissionHandler extends Handler
         // Are we in step one without a submission present?
         if ($step === 1 && $submissionId === 0) {
             // Authorize submission creation. Author role not required.
-            import('lib.pkp.classes.security.authorization.UserRequiredPolicy');
             $this->addPolicy(new UserRequiredPolicy($request));
             $this->markRoleAssignmentsChecked();
         } else {
             // Authorize editing of incomplete submissions.
-            import('lib.pkp.classes.security.authorization.SubmissionAccessPolicy');
             $this->addPolicy(new SubmissionAccessPolicy($request, $args, $roleAssignments, 'submissionId'));
         }
 
@@ -60,13 +62,13 @@ abstract class PKPSubmissionHandler extends Handler
         $submission = $this->getAuthorizedContextObject(ASSOC_TYPE_SUBMISSION);
 
         // Permit if there is no submission set, but request is for initial step.
-        if (!is_a($submission, 'Submission') && $step == 1) {
+        if (!($submission instanceof Submission) && $step == 1) {
             return true;
         }
 
         // In all other cases we expect an authorized submission due to
         // the submission access policy above.
-        assert(is_a($submission, 'Submission'));
+        assert($submission instanceof Submission);
 
         // Deny if submission is complete (==0 means complete) and at
         // any step other than the "complete" step (the last one)
@@ -144,9 +146,7 @@ abstract class PKPSubmissionHandler extends Handler
         $this->setupTemplate($request);
 
         if ($step < $this->getStepCount()) {
-            $formClass = "SubmissionSubmitStep{$step}Form";
-            import("classes.submission.form.${formClass}");
-
+            $formClass = "\\APP\\submission\\form\\SubmissionSubmitStep{$step}Form";
             $submitForm = new $formClass($context, $submission);
             $submitForm->initData();
             return new JSONMessage(true, $submitForm->fetch($request));
@@ -188,9 +188,7 @@ abstract class PKPSubmissionHandler extends Handler
 
         $this->setupTemplate($request);
 
-        $formClass = "SubmissionSubmitStep{$step}Form";
-        import("classes.submission.form.${formClass}");
-
+        $formClass = "\\APP\submission\\form\\SubmissionSubmitStep{$step}Form";
         $submitForm = new $formClass($context, $submission);
         $submitForm->readInputData();
 

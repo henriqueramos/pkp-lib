@@ -13,10 +13,13 @@
  * @brief Parent class for file/submission information center handlers.
  */
 
-import('classes.handler.Handler');
-
+use APP\handler\Handler;
+use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
 use PKP\log\EventLogEntry;
+
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\SubmissionAccessPolicy;
 
 abstract class InformationCenterHandler extends Handler
 {
@@ -49,7 +52,6 @@ abstract class InformationCenterHandler extends Handler
     public function authorize($request, &$args, $roleAssignments)
     {
         // Require a submission
-        import('lib.pkp.classes.security.authorization.SubmissionAccessPolicy');
         $this->addPolicy(new SubmissionAccessPolicy($request, $args, $roleAssignments, 'submissionId'));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -123,7 +125,7 @@ abstract class InformationCenterHandler extends Handler
         $noteDao->deleteById($noteId);
 
         $user = $request->getUser();
-        NotificationManager::createTrivialNotification($user->getId(), NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.removedNote')]);
+        NotificationManager::createTrivialNotification($user->getId(), PKPNotification::NOTIFICATION_TYPE_SUCCESS, ['contents' => __('notification.removedNote')]);
 
         $json = new JSONMessage(true);
         $jsonViewNotesResponse = $this->viewNotes($args, $request);

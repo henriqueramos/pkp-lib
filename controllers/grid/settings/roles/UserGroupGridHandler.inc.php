@@ -13,15 +13,17 @@
  * @brief Handle operations for user group management operations.
  */
 
-// Import the base GridHandler.
-import('lib.pkp.classes.controllers.grid.GridHandler');
-import('lib.pkp.classes.controllers.grid.DataObjectGridCellProvider');
-import('lib.pkp.classes.workflow.WorkflowStageDAO');
-
-// Link action & modal classes
-import('lib.pkp.classes.linkAction.request.AjaxModal');
-
+use APP\notification\NotificationManager;
+use PKP\controllers\grid\feature\PagingFeature;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 use PKP\core\JSONMessage;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\ContextAccessPolicy;
+
+use PKP\security\authorization\internal\WorkflowStageRequiredPolicy;
 
 class UserGroupGridHandler extends GridHandler
 {
@@ -63,13 +65,11 @@ class UserGroupGridHandler extends GridHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.ContextAccessPolicy');
         $this->addPolicy(new ContextAccessPolicy($request, $roleAssignments));
 
         $operation = $request->getRequestedOp();
         $workflowStageRequiredOps = ['assignStage', 'unassignStage'];
         if (in_array($operation, $workflowStageRequiredOps)) {
-            import('lib.pkp.classes.security.authorization.internal.WorkflowStageRequiredPolicy');
             $this->addPolicy(new WorkflowStageRequiredPolicy($request->getUserVar('stageId')));
         }
 
@@ -256,7 +256,6 @@ class UserGroupGridHandler extends GridHandler
      */
     public function initFeatures($request, $args)
     {
-        import('lib.pkp.classes.controllers.grid.feature.PagingFeature');
         return [new PagingFeature()];
     }
 
@@ -342,7 +341,7 @@ class UserGroupGridHandler extends GridHandler
                 // Can't delete default user groups.
                 $notificationMgr->createTrivialNotification(
                     $user->getId(),
-                    NOTIFICATION_TYPE_WARNING,
+                    PKPNotification::NOTIFICATION_TYPE_WARNING,
                     ['contents' => __(
                         'grid.userGroup.cantRemoveDefaultUserGroup',
                         ['userGroupName' => $userGroup->getLocalizedName()	]
@@ -353,7 +352,7 @@ class UserGroupGridHandler extends GridHandler
                 $userGroupDao->deleteObject($userGroup);
                 $notificationMgr->createTrivialNotification(
                     $user->getId(),
-                    NOTIFICATION_TYPE_SUCCESS,
+                    PKPNotification::NOTIFICATION_TYPE_SUCCESS,
                     ['contents' => __(
                         'grid.userGroup.removed',
                         ['userGroupName' => $userGroup->getLocalizedName()	]
@@ -365,7 +364,7 @@ class UserGroupGridHandler extends GridHandler
             // is still assigned to that user group.
             $notificationMgr->createTrivialNotification(
                 $user->getId(),
-                NOTIFICATION_TYPE_WARNING,
+                PKPNotification::NOTIFICATION_TYPE_WARNING,
                 ['contents' => __(
                     'grid.userGroup.cantRemoveUserGroup',
                     ['userGroupName' => $userGroup->getLocalizedName(), 'usersCount' => $usersAssignedToUserGroupCount]
@@ -439,7 +438,7 @@ class UserGroupGridHandler extends GridHandler
 
         $notificationMgr->createTrivialNotification(
             $user->getId(),
-            NOTIFICATION_TYPE_SUCCESS,
+            PKPNotification::NOTIFICATION_TYPE_SUCCESS,
             ['contents' => __(
                 $messageKey,
                 ['userGroupName' => $userGroup->getLocalizedName(), 'stageName' => __($stageLocaleKeys[$stageId])]

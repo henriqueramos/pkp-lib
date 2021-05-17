@@ -13,7 +13,10 @@
  * @brief Base class for query grid row definition
  */
 
-import('lib.pkp.classes.controllers.grid.GridRow');
+use PKP\controllers\grid\GridRow;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 
 class QueriesGridRow extends GridRow
 {
@@ -67,7 +70,6 @@ class QueriesGridRow extends GridRow
 
             // Add row-level actions
             if ($this->_queriesAccessHelper->getCanEdit($rowId)) {
-                import('lib.pkp.classes.linkAction.request.AjaxModal');
                 $this->addAction(
                     new LinkAction(
                         'editQuery',
@@ -83,7 +85,6 @@ class QueriesGridRow extends GridRow
             }
 
             if ($this->_queriesAccessHelper->getCanDelete($rowId)) {
-                import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
                 $this->addAction(
                     new LinkAction(
                         'deleteQuery',

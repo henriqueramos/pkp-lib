@@ -12,7 +12,10 @@
  * @brief Subclass for review form column's cell provider
  */
 
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
+use PKP\controllers\grid\GridCellProvider;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+use PKP\linkAction\LinkAction;
 
 class ReviewFormGridCellProvider extends GridCellProvider
 {
@@ -20,7 +23,7 @@ class ReviewFormGridCellProvider extends GridCellProvider
      * Extracts variables for a given column from a data element
      * so that they may be assigned to template before rendering.
      *
-     * @param $row GridRow
+     * @param $row \PKP\controllers\grid\GridRow
      * @param $column GridColumn
      *
      * @return array
@@ -29,7 +32,7 @@ class ReviewFormGridCellProvider extends GridCellProvider
     {
         $element = $row->getData();
         $columnId = $column->getId();
-        assert(is_a($element, 'ReviewForm') && !empty($columnId));
+        assert($element instanceof \PKP\reviewForm\ReviewForm && !empty($columnId));
         switch ($columnId) {
             case 'name':
                 return ['label' => $element->getLocalizedTitle()];
@@ -46,14 +49,13 @@ class ReviewFormGridCellProvider extends GridCellProvider
     /**
      * @see GridCellProvider::getCellActions()
      */
-    public function getCellActions($request, $row, $column, $position = GRID_ACTION_POSITION_DEFAULT)
+    public function getCellActions($request, $row, $column, $position = GridHandler::GRID_ACTION_POSITION_DEFAULT)
     {
         switch ($column->getId()) {
             case 'active':
                 $element = $row->getData(); /** @var \PKP\core\DataObject $element */
 
                 $router = $request->getRouter();
-                import('lib.pkp.classes.linkAction.LinkAction');
 
                 if ($element->getActive()) {
                     return [new LinkAction(

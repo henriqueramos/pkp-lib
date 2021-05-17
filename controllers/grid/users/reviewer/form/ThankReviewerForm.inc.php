@@ -13,9 +13,11 @@
  * @brief Form for sending a thank you to a reviewer
  */
 
-import('lib.pkp.classes.form.Form');
-
+use APP\notification\NotificationManager;
+use PKP\form\Form;
 use PKP\mail\SubmissionMailTemplate;
+
+use PKP\notification\PKPNotification;
 
 class ThankReviewerForm extends Form
 {
@@ -31,8 +33,8 @@ class ThankReviewerForm extends Form
         $this->_reviewAssignment = $reviewAssignment;
 
         // Validation checks for this form
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     //
@@ -128,9 +130,8 @@ class ThankReviewerForm extends Form
                 'signatureFullName' => $user->getFullname(),
             ]);
             if (!$email->send($request)) {
-                import('classes.notification.NotificationManager');
                 $notificationMgr = new NotificationManager();
-                $notificationMgr->createTrivialNotification($request->getUser()->getId(), NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
+                $notificationMgr->createTrivialNotification($request->getUser()->getId(), PKPNotification::NOTIFICATION_TYPE_ERROR, ['contents' => __('email.compose.error')]);
             }
         }
 

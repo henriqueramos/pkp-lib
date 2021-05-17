@@ -13,14 +13,20 @@
  * @brief base PKP class to handle query grid requests.
  */
 
-// import grid base classes
-import('lib.pkp.classes.controllers.grid.GridHandler');
-
-// Link action & modal classes
-import('lib.pkp.classes.linkAction.request.AjaxModal');
-
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
+use PKP\controllers\grid\feature\OrderGridItemsFeature;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
 use PKP\core\JSONMessage;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 use PKP\mail\SubmissionMailTemplate;
+use PKP\notification\PKPNotification;
+
+use PKP\security\authorization\QueryAccessPolicy;
+use PKP\security\authorization\QueryWorkflowStageAccessPolicy;
 
 class QueriesGridHandler extends GridHandler
 {
@@ -134,10 +140,8 @@ class QueriesGridHandler extends GridHandler
         $this->_request = $request;
 
         if ($request->getUserVar('queryId')) {
-            import('lib.pkp.classes.security.authorization.QueryAccessPolicy');
             $this->addPolicy(new QueryAccessPolicy($request, $args, $roleAssignments, $this->_stageId));
         } else {
-            import('lib.pkp.classes.security.authorization.QueryWorkflowStageAccessPolicy');
             $this->addPolicy(new QueryWorkflowStageAccessPolicy($request, $args, $roleAssignments, 'submissionId', $this->_stageId));
         }
 
@@ -200,7 +204,7 @@ class QueriesGridHandler extends GridHandler
             null,
             null,
             $cellProvider,
-            ['width' => 10, 'alignment' => COLUMN_ALIGNMENT_CENTER]
+            ['width' => 10, 'alignment' => GridColumn::COLUMN_ALIGNMENT_CENTER]
         ));
 
         $this->addColumn(
@@ -210,7 +214,7 @@ class QueriesGridHandler extends GridHandler
                 null,
                 'controllers/grid/common/cell/selectStatusCell.tpl',
                 $cellProvider,
-                ['width' => 10, 'alignment' => COLUMN_ALIGNMENT_CENTER]
+                ['width' => 10, 'alignment' => GridColumn::COLUMN_ALIGNMENT_CENTER]
             )
         );
 
@@ -240,7 +244,6 @@ class QueriesGridHandler extends GridHandler
     {
         $features = parent::initFeatures($request, $args);
         if ($this->getAccessHelper()->getCanOrder($this->getStageId())) {
-            import('lib.pkp.classes.controllers.grid.feature.OrderGridItemsFeature');
             $features[] = new OrderGridItemsFeature();
         }
         return $features;
@@ -378,10 +381,10 @@ class QueriesGridHandler extends GridHandler
             $notificationMgr->updateNotification(
                 $request,
                 [
-                    NOTIFICATION_TYPE_ASSIGN_COPYEDITOR,
-                    NOTIFICATION_TYPE_AWAITING_COPYEDITS,
-                    NOTIFICATION_TYPE_ASSIGN_PRODUCTIONUSER,
-                    NOTIFICATION_TYPE_AWAITING_REPRESENTATIONS,
+                    PKPNotification::NOTIFICATION_TYPE_ASSIGN_COPYEDITOR,
+                    PKPNotification::NOTIFICATION_TYPE_AWAITING_COPYEDITS,
+                    PKPNotification::NOTIFICATION_TYPE_ASSIGN_PRODUCTIONUSER,
+                    PKPNotification::NOTIFICATION_TYPE_AWAITING_REPRESENTATIONS,
                 ],
                 null,
                 ASSOC_TYPE_SUBMISSION,
@@ -463,7 +466,6 @@ class QueriesGridHandler extends GridHandler
 
         // If appropriate, create an Edit action for the participants list
         if ($this->getAccessHelper()->getCanEdit($query->getId())) {
-            import('lib.pkp.classes.linkAction.request.AjaxModal');
             $editAction = new LinkAction(
                 'editQuery',
                 new AjaxModal(
@@ -478,7 +480,6 @@ class QueriesGridHandler extends GridHandler
             $editAction = null;
         }
 
-        import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
         $leaveQueryLinkAction = new LinkAction(
             'leaveQuery',
             new RemoteActionConfirmationModal(
@@ -611,10 +612,10 @@ class QueriesGridHandler extends GridHandler
                 $notificationMgr->updateNotification(
                     $request,
                     [
-                        NOTIFICATION_TYPE_ASSIGN_COPYEDITOR,
-                        NOTIFICATION_TYPE_AWAITING_COPYEDITS,
-                        NOTIFICATION_TYPE_ASSIGN_PRODUCTIONUSER,
-                        NOTIFICATION_TYPE_AWAITING_REPRESENTATIONS,
+                        PKPNotification::NOTIFICATION_TYPE_ASSIGN_COPYEDITOR,
+                        PKPNotification::NOTIFICATION_TYPE_AWAITING_COPYEDITS,
+                        PKPNotification::NOTIFICATION_TYPE_ASSIGN_PRODUCTIONUSER,
+                        PKPNotification::NOTIFICATION_TYPE_AWAITING_REPRESENTATIONS,
                     ],
                     null,
                     ASSOC_TYPE_SUBMISSION,

@@ -17,7 +17,10 @@ import('lib.pkp.classes.plugins.ImportExportPlugin');
 import('lib.pkp.plugins.importexport.native.PKPNativeImportExportCLIDeployment');
 import('lib.pkp.plugins.importexport.native.PKPNativeImportExportCLIToolKit');
 
+use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
+
+use PKP\file\TemporaryFileManager;
 
 abstract class PKPNativeImportExportPlugin extends ImportExportPlugin
 {
@@ -146,7 +149,6 @@ abstract class PKPNativeImportExportPlugin extends ImportExportPlugin
                 $this->isResultManaged = true;
                 break;
             case 'uploadImportXML':
-                import('lib.pkp.classes.file.TemporaryFileManager');
                 $temporaryFileManager = new TemporaryFileManager();
                 $temporaryFile = $temporaryFileManager->handleUpload('uploadedFile', $user->getId());
                 if ($temporaryFile) {

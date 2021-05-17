@@ -13,9 +13,13 @@
  * @brief Produce a sitemap in XML format for submitting to search engines.
  */
 
-import('classes.handler.Handler');
+use APP\handler\Handler;
+
+use DOMDocument;
 
 define('SITEMAP_XSD_URL', 'https://www.sitemaps.org/schemas/sitemap/0.9');
+
+use PKP\navigationMenu\NavigationMenuItem;
 
 class PKPSitemapHandler extends Handler
 {
@@ -119,7 +123,7 @@ class PKPSitemapHandler extends Handler
         }
         // Custom pages (navigation menu items)
         $navigationMenuItemDao = DAORegistry::getDAO('NavigationMenuItemDAO'); /** @var NavigationMenuItemDAO $navigationMenuItemDao */
-        $menuItemsResult = $navigationMenuItemDao->getByType(NMI_TYPE_CUSTOM, $context->getId());
+        $menuItemsResult = $navigationMenuItemDao->getByType(NavigationMenuItem::NMI_TYPE_CUSTOM, $context->getId());
         while ($menuItem = $menuItemsResult->next()) {
             $root->appendChild($this->_createUrlTree($doc, $request->url($context->getPath(), $menuItem->getPath())));
         }

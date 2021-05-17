@@ -11,14 +11,20 @@
  *
  * @brief A factory class for creating a Validator from the Laravel framework.
  */
+
+namespace PKP\validation;
+
+use APP\i18n\AppLocale;
 use Illuminate\Container\Container;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Translation\FileLoader;
 use Illuminate\Translation\Translator;
-use Illuminate\Validation\Factory;
 
-// Import VALIDATE_ACTION_... constants
-import('lib.pkp.classes.services.interfaces.EntityWriteInterface');
+use Illuminate\Validation\Factory;
+use PKP\file\TemporaryFileManager;
+use PKP\services\interfaces\EntityWriteInterface;
+
+use Sokil\IsoCodes\IsoCodesFactory;
 
 class ValidatorFactory
 {
@@ -98,7 +104,7 @@ class ValidatorFactory
         $validation->extend('orcid', function ($attribute, $value, $parameters, $validator) use ($validation) {
             $orcidRegexValidator = $validation->make(
                 ['value' => $value],
-                ['value' => 'regex:/^https:\/\/orcid.org\/(\d{4})-(\d{4})-(\d{4})-(\d{3}[0-9X])$/']
+                ['value' => 'regex:/^https:\/\/(sandbox\.)?orcid.org\/(\d{4})-(\d{4})-(\d{4})-(\d{3}[0-9X])$/']
             );
             if ($orcidRegexValidator->fails()) {
                 return false;
@@ -119,12 +125,19 @@ class ValidatorFactory
 
         // Add custom validation rule for currency
         $validation->extend('currency', function ($attribute, $value, $parameters, $validator) {
-            $isoCodes = new \Sokil\IsoCodes\IsoCodesFactory();
-            $currency = $isoCodes->getCurrencies()->getByLetterCode($value);
+            $isoCodes = new IsoCodesFactory();
+            $currency = $isoCodes->getCurrencies()->getByLetterCode((string) $value);
             return isset($currency);
         });
 
-        $validator = $validation->make($props, $rules, ValidatorFactory::getMessages($messages));
+        // Add custom validation rule for country
+        $validation->extend('country', function ($attribute, $value, $parameters, $validator) {
+            $isoCodes = new IsoCodesFactory();
+            $country = $isoCodes->getCountries()->getByAlpha2((string) $value);
+            return isset($country);
+        });
+
+        $validator = $validation->make($props, $rules, self::getMessages($messages));
 
         return $validator;
     }
@@ -159,6 +172,7 @@ class ValidatorFactory
                 ],
                 'boolean' => __('validator.boolean'),
                 'confirmed' => __('validator.confirmed'),
+                'country' => __('validator.country'),
                 'currency' => __('validator.currency'),
                 'date' => __('validator.date'),
                 'date_format' => __('validator.date_format'),
@@ -280,7 +294,7 @@ class ValidatorFactory
                 // Required multilingual props should only be
                 // required in the primary locale
                 if (in_array($requiredProp, $multilingualProps)) {
-                    if ($action === VALIDATE_ACTION_ADD) {
+                    if ($action === EntityWriteInterface::VALIDATE_ACTION_ADD) {
                         if (self::isEmpty($props[$requiredProp]) || self::isEmpty($props[$requiredProp][$primaryLocale])) {
                             $validator->errors()->add($requiredProp . '.' . $primaryLocale, __('validator.required'));
                         }
@@ -294,8 +308,8 @@ class ValidatorFactory
                         }
                     }
                 } else {
-                    if (($action === VALIDATE_ACTION_ADD && self::isEmpty($props[$requiredProp])) ||
-                            ($action === VALIDATE_ACTION_EDIT && array_key_exists($requiredProp, $props) && self::isEmpty($props[$requiredProp]))) {
+                    if (($action === EntityWriteInterface::VALIDATE_ACTION_ADD && self::isEmpty($props[$requiredProp])) ||
+                            ($action === EntityWriteInterface::VALIDATE_ACTION_EDIT && array_key_exists($requiredProp, $props) && self::isEmpty($props[$requiredProp]))) {
                         $validator->errors()->add($requiredProp, __('validator.required'));
                     }
                 }
@@ -361,7 +375,6 @@ class ValidatorFactory
     public static function temporaryFilesExist($validator, $uploadProps, $multilingualUploadProps, $props, $allowedLocales, $userId)
     {
         $validator->after(function ($validator) use ($uploadProps, $multilingualUploadProps, $props, $allowedLocales, $userId) {
-            import('lib.pkp.classes.file.TemporaryFileManager');
             $temporaryFileManager = new TemporaryFileManager();
             foreach ($uploadProps as $uploadProp) {
                 if (!isset($props[$uploadProp])) {
@@ -389,4 +402,8 @@ class ValidatorFactory
             }
         });
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\validation\ValidatorFactory', '\ValidatorFactory');
 }

@@ -15,12 +15,13 @@
  */
 use APP\core\Services;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Queue as Queue;
-
-import('lib.pkp.classes.handler.APIHandler');
+use Illuminate\Support\Facades\Queue;
 
 use PKP\core\PKPContainer;
+use PKP\handler\APIHandler;
 use PKP\mail\Mail;
+use PKP\security\authorization\PolicySet;
+use PKP\security\authorization\RoleBasedHandlerOperationPolicy;
 
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -59,10 +60,8 @@ class PKPEmailHandler extends APIHandler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.PolicySet');
-        $rolePolicy = new PolicySet(COMBINING_PERMIT_OVERRIDES);
+        $rolePolicy = new PolicySet(PolicySet::COMBINING_PERMIT_OVERRIDES);
 
-        import('lib.pkp.classes.security.authorization.RoleBasedHandlerOperationPolicy');
         foreach ($roleAssignments as $role => $operations) {
             $rolePolicy->addPolicy(new RoleBasedHandlerOperationPolicy($request, $role, $operations));
         }

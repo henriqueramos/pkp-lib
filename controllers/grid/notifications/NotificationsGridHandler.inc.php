@@ -13,11 +13,17 @@
  * @brief Handle the display of notifications for a given user
  */
 
-// Import UI base classes.
-import('lib.pkp.classes.controllers.grid.GridHandler');
-
 // Other classes associated with this grid
 import('lib.pkp.controllers.grid.notifications.NotificationsGridCellProvider');
+
+use APP\notification\NotificationManager;
+use PKP\controllers\grid\feature\PagingFeature;
+use PKP\controllers\grid\feature\selectableItems\SelectableItemsFeature;
+use PKP\controllers\grid\GridColumn;
+use PKP\controllers\grid\GridHandler;
+use PKP\linkAction\LinkAction;
+
+use PKP\linkAction\request\NullAction;
 
 class NotificationsGridHandler extends GridHandler
 {
@@ -46,14 +52,13 @@ class NotificationsGridHandler extends GridHandler
                 null,
                 $cellProvider,
                 ['anyhtml' => true,
-                    'alignment' => COLUMN_ALIGNMENT_LEFT]
+                    'alignment' => GridColumn::COLUMN_ALIGNMENT_LEFT]
             )
         );
 
         // Set the no items row text
         $this->setEmptyRowText('grid.noItems');
 
-        import('lib.pkp.classes.linkAction.request.NullAction');
         $this->addAction(
             new LinkAction(
                 'markNew',
@@ -61,7 +66,7 @@ class NotificationsGridHandler extends GridHandler
                 __('grid.action.markNew'),
                 'edit' // FIXME: Icon
             ),
-            GRID_ACTION_POSITION_BELOW
+            GridHandler::GRID_ACTION_POSITION_BELOW
         );
         $this->addAction(
             new LinkAction(
@@ -70,7 +75,7 @@ class NotificationsGridHandler extends GridHandler
                 __('grid.action.markRead'),
                 'edit' // FIXME: Icon
             ),
-            GRID_ACTION_POSITION_BELOW
+            GridHandler::GRID_ACTION_POSITION_BELOW
         );
 
         $router = $request->getRouter();
@@ -81,7 +86,7 @@ class NotificationsGridHandler extends GridHandler
                 __('grid.action.delete'),
                 'delete'
             ),
-            GRID_ACTION_POSITION_BELOW
+            GridHandler::GRID_ACTION_POSITION_BELOW
         );
     }
 
@@ -132,8 +137,6 @@ class NotificationsGridHandler extends GridHandler
      */
     public function initFeatures($request, $args)
     {
-        import('lib.pkp.classes.controllers.grid.feature.selectableItems.SelectableItemsFeature');
-        import('lib.pkp.classes.controllers.grid.feature.PagingFeature');
         return [new SelectableItemsFeature(), new PagingFeature()];
     }
 
@@ -261,6 +264,6 @@ class NotificationsGridHandler extends GridHandler
     public function getUnreadNotificationsCount($user)
     {
         $notificationDao = DAORegistry::getDAO('NotificationDAO'); /** @var NotificationDAO $notificationDao */
-        return (int) $notificationDao->getNotificationCount(false, $user->getId(), null, NOTIFICATION_LEVEL_TASK);
+        return (int) $notificationDao->getNotificationCount(false, $user->getId(), null, Notification::NOTIFICATION_LEVEL_TASK);
     }
 }

@@ -14,8 +14,9 @@
  *  must be an email.
  */
 
-import('lib.pkp.classes.filter.FilterSetting');
-import('lib.pkp.classes.form.validation.FormValidatorEmail');
+namespace PKP\filter;
+
+use PKP\form\validation\FormValidator;
 
 class EmailFilterSetting extends FilterSetting
 {
@@ -27,7 +28,7 @@ class EmailFilterSetting extends FilterSetting
      * @param $validationMessage string
      * @param $required boolean
      */
-    public function __construct($name, $displayName, $validationMessage, $required = FORM_VALIDATOR_REQUIRED_VALUE)
+    public function __construct($name, $displayName, $validationMessage, $required = FormValidator::FORM_VALIDATOR_REQUIRED_VALUE)
     {
         parent::__construct($name, $displayName, $validationMessage, $required);
     }
@@ -40,7 +41,11 @@ class EmailFilterSetting extends FilterSetting
      */
     public function &getCheck(&$form)
     {
-        $check = new FormValidatorEmail($form, $this->getName(), $this->getRequired(), $this->getValidationMessage());
+        $check = new \PKP\form\validation\FormValidatorEmail($form, $this->getName(), $this->getRequired(), $this->getValidationMessage());
         return $check;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\filter\EmailFilterSetting', '\EmailFilterSetting');
 }

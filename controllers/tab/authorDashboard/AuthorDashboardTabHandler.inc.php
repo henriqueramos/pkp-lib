@@ -13,11 +13,14 @@
  * @brief Handle AJAX operations for authorDashboard tabs.
  */
 
-// Import the base Handler.
-import('classes.handler.Handler');
-
+use APP\handler\Handler;
+use APP\notification\Notification;
+use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
+
 use PKP\log\SubmissionEmailLogEntry;
+use PKP\notification\PKPNotification;
+use PKP\security\authorization\AuthorDashboardAccessPolicy;
 
 class AuthorDashboardTabHandler extends Handler
 {
@@ -39,7 +42,6 @@ class AuthorDashboardTabHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.AuthorDashboardAccessPolicy');
         $this->addPolicy(new AuthorDashboardAccessPolicy($request, $args, $roleAssignments), true);
 
         return parent::authorize($request, $args, $roleAssignments);
@@ -75,9 +77,6 @@ class AuthorDashboardTabHandler extends Handler
             $canAccessCopyeditingStage = false;
         }
         $templateMgr->assign('canAccessCopyeditingStage', $canAccessCopyeditingStage);
-
-        // Import submission file to define file stages.
-        import('lib.pkp.classes.submission.SubmissionFile');
 
         // Workflow-stage specific "upload file" action.
         $currentStage = $submission->getStageId();
@@ -149,18 +148,18 @@ class AuthorDashboardTabHandler extends Handler
     {
         $submissionAssocTypeAndIdArray = [ASSOC_TYPE_SUBMISSION, $submission->getId()];
         return [
-            NOTIFICATION_LEVEL_TASK => [
-                NOTIFICATION_TYPE_PENDING_EXTERNAL_REVISIONS => $submissionAssocTypeAndIdArray],
-            NOTIFICATION_LEVEL_NORMAL => [
-                NOTIFICATION_TYPE_EDITOR_DECISION_ACCEPT => $submissionAssocTypeAndIdArray,
-                NOTIFICATION_TYPE_EDITOR_DECISION_EXTERNAL_REVIEW => $submissionAssocTypeAndIdArray,
-                NOTIFICATION_TYPE_EDITOR_DECISION_PENDING_REVISIONS => $submissionAssocTypeAndIdArray,
-                NOTIFICATION_TYPE_EDITOR_DECISION_RESUBMIT => $submissionAssocTypeAndIdArray,
-                NOTIFICATION_TYPE_EDITOR_DECISION_NEW_ROUND => $submissionAssocTypeAndIdArray,
-                NOTIFICATION_TYPE_EDITOR_DECISION_DECLINE => $submissionAssocTypeAndIdArray,
-                NOTIFICATION_TYPE_EDITOR_DECISION_REVERT_DECLINE => $submissionAssocTypeAndIdArray,
-                NOTIFICATION_TYPE_EDITOR_DECISION_SEND_TO_PRODUCTION => $submissionAssocTypeAndIdArray],
-            NOTIFICATION_LEVEL_TRIVIAL => []
+            Notification::NOTIFICATION_LEVEL_TASK => [
+                PKPNotification::NOTIFICATION_TYPE_PENDING_EXTERNAL_REVISIONS => $submissionAssocTypeAndIdArray],
+            Notification::NOTIFICATION_LEVEL_NORMAL => [
+                PKPNotification::NOTIFICATION_TYPE_EDITOR_DECISION_ACCEPT => $submissionAssocTypeAndIdArray,
+                PKPNotification::NOTIFICATION_TYPE_EDITOR_DECISION_EXTERNAL_REVIEW => $submissionAssocTypeAndIdArray,
+                PKPNotification::NOTIFICATION_TYPE_EDITOR_DECISION_PENDING_REVISIONS => $submissionAssocTypeAndIdArray,
+                PKPNotification::NOTIFICATION_TYPE_EDITOR_DECISION_RESUBMIT => $submissionAssocTypeAndIdArray,
+                PKPNotification::NOTIFICATION_TYPE_EDITOR_DECISION_NEW_ROUND => $submissionAssocTypeAndIdArray,
+                PKPNotification::NOTIFICATION_TYPE_EDITOR_DECISION_DECLINE => $submissionAssocTypeAndIdArray,
+                PKPNotification::NOTIFICATION_TYPE_EDITOR_DECISION_REVERT_DECLINE => $submissionAssocTypeAndIdArray,
+                PKPNotification::NOTIFICATION_TYPE_EDITOR_DECISION_SEND_TO_PRODUCTION => $submissionAssocTypeAndIdArray],
+            Notification::NOTIFICATION_LEVEL_TRIVIAL => []
         ];
     }
 }

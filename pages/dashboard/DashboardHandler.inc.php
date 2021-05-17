@@ -12,7 +12,11 @@
  * @brief Handle requests for user's dashboard.
  */
 
-import('classes.handler.Handler');
+use APP\handler\Handler;
+use APP\template\TemplateManager;
+
+use PKP\security\authorization\PKPSiteAccessPolicy;
+use PKP\submission\PKPSubmission;
 
 define('SUBMISSIONS_LIST_ACTIVE', 'active');
 define('SUBMISSIONS_LIST_ARCHIVE', 'archive');
@@ -42,7 +46,6 @@ class DashboardHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.PKPSiteAccessPolicy');
         $this->addPolicy(new PKPSiteAccessPolicy($request, null, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }
@@ -92,7 +95,7 @@ class DashboardHandler extends Handler
             [
                 'apiUrl' => $apiUrl,
                 'getParams' => [
-                    'status' => STATUS_QUEUED,
+                    'status' => PKPSubmission::STATUS_QUEUED,
                     'assignedTo' => [(int) $request->getUser()->getId()],
                 ],
                 'includeIssuesFilter' => $includeIssuesFilter,
@@ -116,7 +119,7 @@ class DashboardHandler extends Handler
                 [
                     'apiUrl' => $apiUrl,
                     'getParams' => [
-                        'status' => STATUS_QUEUED,
+                        'status' => PKPSubmission::STATUS_QUEUED,
                         'assignedTo' => -1,
                     ],
                     'lazyLoad' => true,
@@ -135,7 +138,7 @@ class DashboardHandler extends Handler
                 [
                     'apiUrl' => $apiUrl,
                     'getParams' => [
-                        'status' => STATUS_QUEUED,
+                        'status' => PKPSubmission::STATUS_QUEUED,
                     ],
                     'lazyLoad' => true,
                     'includeIssuesFilter' => $includeIssuesFilter,
@@ -149,7 +152,7 @@ class DashboardHandler extends Handler
 
         // Archived
         $params = [
-            'status' => [STATUS_DECLINED, STATUS_PUBLISHED, STATUS_SCHEDULED],
+            'status' => [PKPSubmission::STATUS_DECLINED, PKPSubmission::STATUS_PUBLISHED, PKPSubmission::STATUS_SCHEDULED],
         ];
         if (empty(array_intersect([ROLE_ID_MANAGER, ROLE_ID_SITE_ADMIN], $userRoles))) {
             $params['assignedTo'] = (int) $currentUser->getId();

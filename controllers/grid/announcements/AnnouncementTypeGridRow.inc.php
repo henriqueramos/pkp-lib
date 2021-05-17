@@ -13,8 +13,9 @@
  * @brief Announcement type grid row definition
  */
 
-import('lib.pkp.classes.controllers.grid.GridRow');
-import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
+use PKP\controllers\grid\GridRow;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\RemoteActionConfirmationModal;
 
 class AnnouncementTypeGridRow extends GridRow
 {

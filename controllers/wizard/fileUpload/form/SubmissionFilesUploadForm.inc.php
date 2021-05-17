@@ -13,6 +13,8 @@
  * @brief Form for adding/editing a submission file
  */
 
+use PKP\file\FileManager;
+use PKP\form\validation\FormValidator;
 use PKP\submission\SubmissionFile;
 
 import('lib.pkp.controllers.wizard.fileUpload.form.PKPSubmissionFilesUploadBaseForm');
@@ -127,10 +129,10 @@ class SubmissionFilesUploadForm extends PKPSubmissionFilesUploadBaseForm
             !$revisedFileId
         ) {
             // Add an additional check for the genre to the form.
-            $this->addCheck(new FormValidatorCustom(
+            $this->addCheck(new \PKP\form\validation\FormValidatorCustom(
                 $this,
                 'genreId',
-                FORM_VALIDATOR_REQUIRED_VALUE,
+                FormValidator::FORM_VALIDATOR_REQUIRED_VALUE,
                 'submission.upload.noGenre',
                 function ($genreId) use ($context) {
                     $genreDao = DAORegistry::getDAO('GenreDAO'); /** @var GenreDAO $genreDao */
@@ -172,7 +174,6 @@ class SubmissionFilesUploadForm extends PKPSubmissionFilesUploadBaseForm
         assert(is_a($user, 'User'));
 
         // Upload the file.
-        import('lib.pkp.classes.file.FileManager');
         $fileManager = new FileManager();
         $extension = $fileManager->parseFileExtension($_FILES['uploadedFile']['name']);
 

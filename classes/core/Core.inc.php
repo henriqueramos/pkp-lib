@@ -25,7 +25,7 @@ define('COUNTER_USER_AGENTS_FILE', Core::getBaseDir() . DIRECTORY_SEPARATOR . PK
 
 use APP\core\Application;
 use PKP\cache\CacheManager;
-use PKPString;
+use PKP\config\Config;
 
 class Core
 {

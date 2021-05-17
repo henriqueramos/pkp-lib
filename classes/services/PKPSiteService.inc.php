@@ -12,19 +12,20 @@
  * @brief Helper class that encapsulates business logic for the overall site
  */
 
-namespace PKP\Services;
+namespace PKP\services;
 
 use APP\core\Application;
 use APP\core\Services;
 use PKP\db\DAORegistry;
+use PKP\services\interfaces\EntityPropertyInterface;
+use PKP\services\interfaces\EntityWriteInterface;
 
-use PKP\Services\interfaces\EntityPropertyInterface;
-use PKP\services\PKPSchemaService;
+use PKP\validation\ValidatorFactory;
 
 class PKPSiteService implements EntityPropertyInterface
 {
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getProperties()
      *
      * @param null|mixed $args
      */
@@ -49,7 +50,7 @@ class PKPSiteService implements EntityPropertyInterface
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getSummaryProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getSummaryProperties()
      *
      * @param null|mixed $args
      */
@@ -59,7 +60,7 @@ class PKPSiteService implements EntityPropertyInterface
     }
 
     /**
-     * @copydoc \PKP\Services\interfaces\EntityPropertyInterface::getFullProperties()
+     * @copydoc \PKP\services\interfaces\EntityPropertyInterface::getFullProperties()
      *
      * @param null|mixed $args
      */
@@ -94,8 +95,7 @@ class PKPSiteService implements EntityPropertyInterface
         );
         $schemaService = Services::get('schema');
 
-        import('lib.pkp.classes.validation.ValidatorFactory');
-        $validator = \ValidatorFactory::make(
+        $validator = ValidatorFactory::make(
             $props,
             $schemaService->getValidationRules(PKPSchemaService::SCHEMA_SITE, $allowedLocales),
             [
@@ -105,9 +105,9 @@ class PKPSiteService implements EntityPropertyInterface
         );
 
         // Check required fields
-        \ValidatorFactory::required(
+        ValidatorFactory::required(
             $validator,
-            VALIDATE_ACTION_EDIT,
+            EntityWriteInterface::VALIDATE_ACTION_EDIT,
             $schemaService->getRequiredProps(PKPSchemaService::SCHEMA_PUBLICATION),
             $schemaService->getMultilingualProps(PKPSchemaService::SCHEMA_PUBLICATION),
             $allowedLocales,
@@ -115,7 +115,7 @@ class PKPSiteService implements EntityPropertyInterface
         );
 
         // Check for input from disallowed locales
-        \ValidatorFactory::allowedLocales(
+        ValidatorFactory::allowedLocales(
             $validator,
             $schemaService->getMultilingualProps(PKPSchemaService::SCHEMA_SITE),
             $allowedLocales
@@ -124,7 +124,7 @@ class PKPSiteService implements EntityPropertyInterface
         // If a new file has been uploaded, check that the temporary file exists and
         // the current user owns it
         $user = Application::get()->getRequest()->getUser();
-        \ValidatorFactory::temporaryFilesExist(
+        ValidatorFactory::temporaryFilesExist(
             $validator,
             ['pageHeaderTitleImage', 'styleSheet'],
             ['pageHeaderTitleImage'],
@@ -229,9 +229,7 @@ class PKPSiteService implements EntityPropertyInterface
      */
     public function moveTemporaryFile($context, $temporaryFile, $fileNameBase, $userId, $localeKey = '')
     {
-        import('classes.file.PublicFileManager');
         $publicFileManager = new \PublicFileManager();
-        import('lib.pkp.classes.file.TemporaryFileManager');
         $temporaryFileManager = new \TemporaryFileManager();
 
         $fileName = $fileNameBase;
@@ -278,7 +276,6 @@ class PKPSiteService implements EntityPropertyInterface
      */
     protected function _saveFileParam($site, $value, $settingName, $userId, $localeKey = '', $isImage = false)
     {
-        import('lib.pkp.classes.file.TemporaryFileManager');
         $temporaryFileManager = new \TemporaryFileManager();
 
         // If the value is null, clean up any existing file in the system
@@ -286,7 +283,6 @@ class PKPSiteService implements EntityPropertyInterface
             $setting = $site->getData($settingName, $localeKey);
             if ($setting) {
                 $fileName = $isImage ? $setting['uploadName'] : $setting;
-                import('classes.file.PublicFileManager');
                 $publicFileManager = new \PublicFileManager();
                 $publicFileManager->removeSiteFile($fileName);
             }
@@ -304,7 +300,6 @@ class PKPSiteService implements EntityPropertyInterface
         if ($fileName) {
             // Get the details for image uploads
             if ($isImage) {
-                import('classes.file.PublicFileManager');
                 $publicFileManager = new \PublicFileManager();
 
                 [$width, $height] = getimagesize($publicFileManager->getSiteFilesPath() . '/' . $fileName);

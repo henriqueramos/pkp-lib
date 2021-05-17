@@ -13,10 +13,13 @@
  * @brief Handle requests for viewing notifications.
  */
 
-import('classes.handler.Handler');
-import('classes.notification.Notification');
+use APP\handler\Handler;
+use APP\notification\Notification;
 
+use APP\notification\NotificationManager;
+use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
+use PKP\notification\form\PKPNotificationsUnsubscribeForm;
 
 class NotificationHandler extends Handler
 {
@@ -47,7 +50,7 @@ class NotificationHandler extends Handler
             $notifications = $this->_getNotificationsByOptions($notificationOptions, $context->getId(), $userId);
         } else {
             // No options, get only TRIVIAL notifications.
-            $notifications = $notificationDao->getByUserId($userId, NOTIFICATION_LEVEL_TRIVIAL);
+            $notifications = $notificationDao->getByUserId($userId, Notification::NOTIFICATION_LEVEL_TRIVIAL);
             $notifications = $notifications->toArray();
         }
 
@@ -92,7 +95,6 @@ class NotificationHandler extends Handler
 
             $notification = $this->_validateUnsubscribeRequest($validationToken, $notificationId);
 
-            import('lib.pkp.classes.notification.form.PKPNotificationsUnsubscribeForm');
 
             $notificationsUnsubscribeForm = new PKPNotificationsUnsubscribeForm($notification, $validationToken);
             $notificationsUnsubscribeForm->display($request);
@@ -102,7 +104,6 @@ class NotificationHandler extends Handler
         // Otherwise process the result
         $this->setupTemplate($request);
 
-        import('lib.pkp.classes.notification.form.PKPNotificationsUnsubscribeForm');
 
         $notificationsUnsubscribeForm = new PKPNotificationsUnsubscribeForm($notification, $validationToken);
 

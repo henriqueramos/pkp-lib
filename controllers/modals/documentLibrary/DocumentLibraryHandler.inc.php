@@ -13,8 +13,10 @@
  * @brief Submission document library modal handler.
  */
 
-// Import the base Handler.
-import('classes.handler.Handler');
+use APP\handler\Handler;
+
+use APP\template\TemplateManager;
+use PKP\security\authorization\SubmissionAccessPolicy;
 
 class DocumentLibraryHandler extends Handler
 {
@@ -53,7 +55,6 @@ class DocumentLibraryHandler extends Handler
      */
     public function authorize($request, &$args, $roleAssignments)
     {
-        import('lib.pkp.classes.security.authorization.SubmissionAccessPolicy');
         $this->addPolicy(new SubmissionAccessPolicy($request, $args, $roleAssignments));
         return parent::authorize($request, $args, $roleAssignments);
     }

@@ -12,7 +12,12 @@
  * @brief Base class for reviewer forms.
  */
 
-import('lib.pkp.classes.form.Form');
+namespace PKP\submission\reviewer\form;
+
+use APP\template\TemplateManager;
+use PKP\db\DAORegistry;
+
+use PKP\form\Form;
 
 class ReviewerReviewForm extends Form
 {
@@ -38,8 +43,8 @@ class ReviewerReviewForm extends Form
     public function __construct($request, $reviewerSubmission, $reviewAssignment, $step)
     {
         parent::__construct(sprintf('reviewer/review/step%d.tpl', $step));
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
         $this->request = $request;
         $this->_step = (int) $step;
         $this->_reviewerSubmission = $reviewerSubmission;
@@ -123,4 +128,8 @@ class ReviewerReviewForm extends Form
         $reviewerSubmissionDao = DAORegistry::getDAO('ReviewerSubmissionDAO'); /** @var ReviewerSubmissionDAO $reviewerSubmissionDao */
         $reviewerSubmissionDao->updateReviewerSubmission($reviewerSubmission);
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\submission\reviewer\form\ReviewerReviewForm', '\ReviewerReviewForm');
 }
