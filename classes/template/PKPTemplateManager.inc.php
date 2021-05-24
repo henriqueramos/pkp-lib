@@ -40,16 +40,15 @@ use PKP\core\JSONMessage;
 use PKP\core\PKPApplication;
 use PKP\core\Registry;
 use PKP\db\DAORegistry;
-
 use PKP\form\FormBuilderVocabulary;
 use PKP\linkAction\LinkAction;
+
 use PKP\linkAction\request\NullAction;
 use PKP\plugins\HookRegistry;
 use PKP\plugins\PluginRegistry;
+use PKP\security\Role;
+use PKP\security\Validation;
 use Smarty;
-
-// FIXME: add namespacing
-use Validation;
 
 /* This definition is required by Smarty */
 define('SMARTY_DIR', Core::getBaseDir() . '/lib/pkp/lib/vendor/smarty/smarty/libs/');
@@ -134,13 +133,13 @@ class PKPTemplateManager extends Smarty
      */
     public function initialize($request)
     {
-        assert(is_a($request, 'PKPRequest'));
+        assert($request instanceof \PKP\core\PKPRequest);
         $this->_request = $request;
 
         $locale = AppLocale::getLocale();
         $application = Application::get();
         $router = $request->getRouter();
-        assert(is_a($router, 'PKPRouter'));
+        assert($router instanceof \PKP\core\PKPRouter);
 
         AppLocale::requireComponents(LOCALE_COMPONENT_APP_COMMON, LOCALE_COMPONENT_PKP_COMMON);
         $currentContext = $request->getContext();
@@ -207,7 +206,7 @@ class PKPTemplateManager extends Smarty
             $this->assign(['activeTheme' => $activeTheme]);
         }
 
-        if (is_a($router, 'PKPPageRouter')) {
+        if ($router instanceof \PKP\core\PKPPageRouter) {
             $this->assign([
                 'requestedPage' => $router->getRequestedPage($request),
                 'requestedOp' => $router->getRequestedOp($request),
@@ -282,15 +281,15 @@ class PKPTemplateManager extends Smarty
             $nmService = Services::get('navigationMenu');
 
             if (Config::getVar('general', 'installed')) {
-                \HookRegistry::register('LoadHandler', [$nmService, '_callbackHandleCustomNavigationMenuItems']);
+                HookRegistry::register('LoadHandler', [$nmService, '_callbackHandleCustomNavigationMenuItems']);
             }
         }
 
         // Register custom functions
-        $this->registerPlugin('modifier', 'translate', 'AppLocale::translate');
-        $this->registerPlugin('modifier', 'strip_unsafe_html', 'PKPString::stripUnsafeHtml');
-        $this->registerPlugin('modifier', 'String_substr', 'PKPString::substr');
-        $this->registerPlugin('modifier', 'dateformatPHP2JQueryDatepicker', 'PKPString::dateformatPHP2JQueryDatepicker');
+        $this->registerPlugin('modifier', 'translate', '\APP\i18n\AppLocale::translate');
+        $this->registerPlugin('modifier', 'strip_unsafe_html', '\PKP\core\PKPString::stripUnsafeHtml');
+        $this->registerPlugin('modifier', 'String_substr', '\PKP\core\PKPString::substr');
+        $this->registerPlugin('modifier', 'dateformatPHP2JQueryDatepicker', '\PKP\core\PKPString::dateformatPHP2JQueryDatepicker');
         $this->registerPlugin('modifier', 'to_array', [$this, 'smartyToArray']);
         $this->registerPlugin('modifier', 'compare', [$this, 'smartyCompare']);
         $this->registerPlugin('modifier', 'concat', [$this, 'smartyConcat']);
@@ -476,7 +475,7 @@ class PKPTemplateManager extends Smarty
     {
         $cacheDirectory = CacheManager::getFileCachePath();
         $context = $this->_request->getContext();
-        $contextId = is_a($context, 'Context') ? $context->getId() : 0;
+        $contextId = $context instanceof \PKP\context\Context ? $context->getId() : 0;
         return $cacheDirectory . DIRECTORY_SEPARATOR . $contextId . '-' . $name . '.css';
     }
 
@@ -719,9 +718,6 @@ class PKPTemplateManager extends Smarty
         // Instantiate the namespace
         $output = '$.pkp = $.pkp || {};';
 
-        // Load data intended for general use by the app
-        import('lib.pkp.classes.security.Role');
-
         $app_data = [
             'currentLocale' => AppLocale::getLocale(),
             'primaryLocale' => AppLocale::getPrimaryLocale(),
@@ -794,14 +790,14 @@ class PKPTemplateManager extends Smarty
             'WORKFLOW_STAGE_ID_EDITING' => WORKFLOW_STAGE_ID_EDITING,
             'WORKFLOW_STAGE_ID_PRODUCTION' => WORKFLOW_STAGE_ID_PRODUCTION,
             'INSERT_TAG_VARIABLE_TYPE_PLAIN_TEXT' => INSERT_TAG_VARIABLE_TYPE_PLAIN_TEXT,
-            'ROLE_ID_MANAGER' => ROLE_ID_MANAGER,
-            'ROLE_ID_SITE_ADMIN' => ROLE_ID_SITE_ADMIN,
-            'ROLE_ID_AUTHOR' => ROLE_ID_AUTHOR,
-            'ROLE_ID_REVIEWER' => ROLE_ID_REVIEWER,
-            'ROLE_ID_ASSISTANT' => ROLE_ID_ASSISTANT,
-            'ROLE_ID_READER' => ROLE_ID_READER,
-            'ROLE_ID_SUB_EDITOR' => ROLE_ID_SUB_EDITOR,
-            'ROLE_ID_SUBSCRIPTION_MANAGER' => ROLE_ID_SUBSCRIPTION_MANAGER,
+            'ROLE_ID_MANAGER' => Role::ROLE_ID_MANAGER,
+            'ROLE_ID_SITE_ADMIN' => Role::ROLE_ID_SITE_ADMIN,
+            'ROLE_ID_AUTHOR' => Role::ROLE_ID_AUTHOR,
+            'ROLE_ID_REVIEWER' => Role::ROLE_ID_REVIEWER,
+            'ROLE_ID_ASSISTANT' => Role::ROLE_ID_ASSISTANT,
+            'ROLE_ID_READER' => Role::ROLE_ID_READER,
+            'ROLE_ID_SUB_EDITOR' => Role::ROLE_ID_SUB_EDITOR,
+            'ROLE_ID_SUBSCRIPTION_MANAGER' => Role::ROLE_ID_SUBSCRIPTION_MANAGER,
         ]);
 
         // Common locale keys available in the browser for every page
@@ -945,7 +941,7 @@ class PKPTemplateManager extends Smarty
                 $notificationsCount = count($notificationDao->getByUserId($request->getUser()->getId(), Notification::NOTIFICATION_LEVEL_TRIVIAL)->toArray());
 
                 // Load context switcher
-                $isAdmin = in_array(ROLE_ID_SITE_ADMIN, $this->get_template_vars('userRoles'));
+                $isAdmin = in_array(Role::ROLE_ID_SITE_ADMIN, $this->get_template_vars('userRoles'));
                 if ($isAdmin) {
                     $args = [];
                 } else {
@@ -981,13 +977,13 @@ class PKPTemplateManager extends Smarty
                 $menu = [];
 
                 if ($request->getContext()) {
-                    if (count(array_intersect([ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR, ROLE_ID_ASSISTANT, ROLE_ID_REVIEWER, ROLE_ID_AUTHOR], $userRoles))) {
+                    if (count(array_intersect([Role::ROLE_ID_MANAGER, Role::ROLE_ID_SUB_EDITOR, Role::ROLE_ID_ASSISTANT, Role::ROLE_ID_REVIEWER, Role::ROLE_ID_AUTHOR], $userRoles))) {
                         $menu['submissions'] = [
                             'name' => __('navigation.submissions'),
                             'url' => $router->url($request, null, 'submissions'),
                             'isCurrent' => $router->getRequestedPage($request) === 'submissions',
                         ];
-                    } elseif (count($userRoles) === 1 && in_array(ROLE_ID_READER, $userRoles)) {
+                    } elseif (count($userRoles) === 1 && in_array(Role::ROLE_ID_READER, $userRoles)) {
                         AppLocale::requireComponents(LOCALE_COMPONENT_APP_AUTHOR);
                         $menu['submit'] = [
                             'name' => __('author.submit'),
@@ -996,7 +992,7 @@ class PKPTemplateManager extends Smarty
                         ];
                     }
 
-                    if (in_array(ROLE_ID_MANAGER, $userRoles)) {
+                    if (in_array(Role::ROLE_ID_MANAGER, $userRoles)) {
                         if ($request->getContext()->getData('enableAnnouncements')) {
                             $menu['announcements'] = [
                                 'name' => __('announcement.announcements'),
@@ -1036,7 +1032,7 @@ class PKPTemplateManager extends Smarty
                         ];
                     }
 
-                    if (count(array_intersect([ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR], $userRoles))) {
+                    if (count(array_intersect([Role::ROLE_ID_MANAGER, Role::ROLE_ID_SUB_EDITOR], $userRoles))) {
                         $menu['statistics'] = [
                             'name' => __('navigation.tools.statistics'),
                             'submenu' => [
@@ -1057,7 +1053,7 @@ class PKPTemplateManager extends Smarty
                                 ]
                             ]
                         ];
-                        if (in_array(ROLE_ID_MANAGER, $userRoles)) {
+                        if (in_array(Role::ROLE_ID_MANAGER, $userRoles)) {
                             $menu['statistics']['submenu'] += [
                                 'reports' => [
                                     'name' => __('manager.statistics.reports'),
@@ -1068,7 +1064,7 @@ class PKPTemplateManager extends Smarty
                         }
                     }
 
-                    if (in_array(ROLE_ID_MANAGER, $userRoles)) {
+                    if (in_array(Role::ROLE_ID_MANAGER, $userRoles)) {
                         $menu['tools'] = [
                             'name' => __('navigation.tools'),
                             'url' => $router->url($request, null, 'management', 'tools'),
@@ -1076,7 +1072,7 @@ class PKPTemplateManager extends Smarty
                         ];
                     }
 
-                    if (in_array(ROLE_ID_SITE_ADMIN, $userRoles)) {
+                    if (in_array(Role::ROLE_ID_SITE_ADMIN, $userRoles)) {
                         $menu['admin'] = [
                             'name' => __('navigation.admin'),
                             'url' => $router->url($request, 'index', 'admin'),
@@ -1163,7 +1159,7 @@ class PKPTemplateManager extends Smarty
     {
         if (Config::getVar('general', 'installed')) {
             $context = $this->_request->getContext();
-            if (is_a($context, 'Context')) {
+            if ($context instanceof \PKP\core\Context) {
                 $resourceName .= $context->getData('themePluginPath');
             }
         }
@@ -1316,7 +1312,7 @@ class PKPTemplateManager extends Smarty
                 trigger_error('Deprecated call without request object.');
             }
         }
-        assert(is_a($request, 'PKPRequest'));
+        assert($request instanceof \PKP\core\PKPRequest);
 
         $instance = & Registry::get('templateManager', true, null); // Reference required
 
@@ -1685,7 +1681,7 @@ class PKPTemplateManager extends Smarty
 
         // Set the default router
         if (is_null($router)) {
-            if (is_a($this->_request->getRouter(), 'PKPComponentRouter')) {
+            if ($this->_request->getRouter() instanceof \PKP\core\PKPComponentRouter) {
                 $router = PKPApplication::ROUTE_COMPONENT;
             } else {
                 $router = PKPApplication::ROUTE_PAGE;
@@ -1806,7 +1802,7 @@ class PKPTemplateManager extends Smarty
 
         $router = $this->_request->getRouter();
         $requestedArgs = null;
-        if (is_a($router, 'PageRouter')) {
+        if ($router instanceof \PKP\core\PageRouter) {
             $requestedArgs = $router->getRequestedArgs($this->_request);
         }
 
@@ -2168,7 +2164,7 @@ class PKPTemplateManager extends Smarty
         $areaName = $params['name'];
         $declaredMenuTemplatePath = $params['path'] ?? null;
         $currentContext = $this->_request->getContext();
-        $contextId = CONTEXT_ID_NONE;
+        $contextId = Application::CONTEXT_ID_NONE;
         if ($currentContext) {
             $contextId = $currentContext->getId();
         }

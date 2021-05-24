@@ -21,9 +21,10 @@ use APP\core\Application;
 use APP\i18n\AppLocale;
 use PKP\core\Core;
 use PKP\db\DAOResultFactory;
-
 use PKP\identity\Identity;
+
 use PKP\plugins\HookRegistry;
+use PKP\security\Role;
 
 class UserDAO extends \PKP\db\DAO
 {
@@ -186,7 +187,7 @@ class UserDAO extends \PKP\db\DAO
 				' . $this->getOrderBy(),
                 array_merge($this->getFetchParameters(), [
                     (int) $contextId,
-                    ROLE_ID_REVIEWER,
+                    Role::ROLE_ID_REVIEWER,
                     (int) $submissionId,
                     (int) $round
                 ]),
@@ -210,7 +211,7 @@ class UserDAO extends \PKP\db\DAO
     public function getReviewersNotAssignedToSubmission($contextId, $submissionId, &$reviewRound, $name = '')
     {
         $params = array_merge(
-            [(int) $contextId, ROLE_ID_REVIEWER, (int) $reviewRound->getStageId()],
+            [(int) $contextId, Role::ROLE_ID_REVIEWER, (int) $reviewRound->getStageId()],
             $this->getFetchParameters(),
             [(int) $submissionId, (int) $reviewRound->getId()]
         );
@@ -408,7 +409,7 @@ class UserDAO extends \PKP\db\DAO
             // assoc_type and assoc_id must be included for upsert, or PostgreSQL's ON CONFLICT will not work:
             // "there is no unique or exclusion constraint matching the ON CONFLICT specification"
             // However, no localized context-specific data is currently used, so we can rely on the pkey.
-            'assoc_type' => CONTEXT_SITE,
+            'assoc_type' => \PKP\core\PKPApplication::CONTEXT_SITE,
             'assoc_id' => 0,
         ]);
     }

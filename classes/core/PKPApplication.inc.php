@@ -17,15 +17,16 @@
 namespace PKP\core;
 
 use APP\core\Application;
+
 use APP\core\Request;
 use APP\i18n\AppLocale;
 use APP\statistics\StatisticsHelper;
-
 use Exception;
 use PKP\config\Config;
+
 use PKP\db\DAORegistry;
 use PKP\plugins\PluginRegistry;
-
+use PKP\security\Role;
 use PKP\statistics\PKPStatisticsHelper;
 
 interface iPKPApplicationInfoProvider
@@ -200,10 +201,6 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
 
         Registry::set('application', $this);
 
-        import('lib.pkp.classes.security.RoleDAO');
-        import('lib.pkp.classes.security.Validation');
-        import('lib.pkp.classes.statistics.PKPStatisticsHelper');
-
         PKPString::init();
 
         $microTime = Core::microtime();
@@ -322,9 +319,9 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
             $dispatcher->setApplication(PKPApplication::get());
 
             // Inject router configuration
-            $dispatcher->addRouterName('lib.pkp.classes.core.APIRouter', self::ROUTE_API);
-            $dispatcher->addRouterName('lib.pkp.classes.core.PKPComponentRouter', self::ROUTE_COMPONENT);
-            $dispatcher->addRouterName('classes.core.PageRouter', self::ROUTE_PAGE);
+            $dispatcher->addRouterName('\PKP\core\APIRouter', self::ROUTE_API);
+            $dispatcher->addRouterName('\PKP\core\PKPComponentRouter', self::ROUTE_COMPONENT);
+            $dispatcher->addRouterName('\APP\core\PageRouter', self::ROUTE_PAGE);
         }
 
         return $dispatcher;
@@ -409,7 +406,7 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
             if ($mainContext) {
                 $mainContextId = $mainContext->getId();
             } else {
-                $mainContextId = CONTEXT_SITE;
+                $mainContextId = self::CONTEXT_SITE;
             }
         }
         if (!isset($this->enabledProducts[$mainContextId])) {
@@ -462,75 +459,75 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
     public function getDAOMap()
     {
         return [
-            'AccessKeyDAO' => 'lib.pkp.classes.security.AccessKeyDAO',
-            'AnnouncementDAO' => 'lib.pkp.classes.announcement.AnnouncementDAO',
-            'AnnouncementTypeDAO' => 'lib.pkp.classes.announcement.AnnouncementTypeDAO',
-            'AuthSourceDAO' => 'lib.pkp.classes.security.AuthSourceDAO',
-            'CategoryDAO' => 'lib.pkp.classes.context.CategoryDAO',
-            'CitationDAO' => 'lib.pkp.classes.citation.CitationDAO',
-            'ControlledVocabDAO' => 'lib.pkp.classes.controlledVocab.ControlledVocabDAO',
-            'ControlledVocabEntryDAO' => 'lib.pkp.classes.controlledVocab.ControlledVocabEntryDAO',
-            'ControlledVocabEntrySettingsDAO' => 'lib.pkp.classes.controlledVocab.ControlledVocabEntrySettingsDAO',
-            'DataObjectTombstoneDAO' => 'lib.pkp.classes.tombstone.DataObjectTombstoneDAO',
-            'DataObjectTombstoneSettingsDAO' => 'lib.pkp.classes.tombstone.DataObjectTombstoneSettingsDAO',
-            'EditDecisionDAO' => 'lib.pkp.classes.submission.EditDecisionDAO',
-            'EmailTemplateDAO' => 'lib.pkp.classes.mail.EmailTemplateDAO',
-            'FilterDAO' => 'lib.pkp.classes.filter.FilterDAO',
-            'FilterGroupDAO' => 'lib.pkp.classes.filter.FilterGroupDAO',
-            'GenreDAO' => 'lib.pkp.classes.submission.GenreDAO',
-            'InterestDAO' => 'lib.pkp.classes.user.InterestDAO',
-            'InterestEntryDAO' => 'lib.pkp.classes.user.InterestEntryDAO',
-            'LibraryFileDAO' => 'lib.pkp.classes.context.LibraryFileDAO',
-            'NavigationMenuDAO' => 'lib.pkp.classes.navigationMenu.NavigationMenuDAO',
-            'NavigationMenuItemDAO' => 'lib.pkp.classes.navigationMenu.NavigationMenuItemDAO',
-            'NavigationMenuItemAssignmentDAO' => 'lib.pkp.classes.navigationMenu.NavigationMenuItemAssignmentDAO',
-            'NoteDAO' => 'lib.pkp.classes.note.NoteDAO',
-            'NotificationDAO' => 'lib.pkp.classes.notification.NotificationDAO',
-            'NotificationSettingsDAO' => 'lib.pkp.classes.notification.NotificationSettingsDAO',
-            'NotificationSubscriptionSettingsDAO' => 'lib.pkp.classes.notification.NotificationSubscriptionSettingsDAO',
-            'PluginGalleryDAO' => 'lib.pkp.classes.plugins.PluginGalleryDAO',
-            'PluginSettingsDAO' => 'lib.pkp.classes.plugins.PluginSettingsDAO',
-            'PublicationDAO' => 'classes.publication.PublicationDAO',
-            'QueuedPaymentDAO' => 'lib.pkp.classes.payment.QueuedPaymentDAO',
-            'ReviewAssignmentDAO' => 'lib.pkp.classes.submission.reviewAssignment.ReviewAssignmentDAO',
-            'ReviewFilesDAO' => 'lib.pkp.classes.submission.ReviewFilesDAO',
-            'ReviewFormDAO' => 'lib.pkp.classes.reviewForm.ReviewFormDAO',
-            'ReviewFormElementDAO' => 'lib.pkp.classes.reviewForm.ReviewFormElementDAO',
-            'ReviewFormResponseDAO' => 'lib.pkp.classes.reviewForm.ReviewFormResponseDAO',
-            'ReviewRoundDAO' => 'lib.pkp.classes.submission.reviewRound.ReviewRoundDAO',
-            'RoleDAO' => 'lib.pkp.classes.security.RoleDAO',
-            'ScheduledTaskDAO' => 'lib.pkp.classes.scheduledTask.ScheduledTaskDAO',
-            'SessionDAO' => 'lib.pkp.classes.session.SessionDAO',
-            'SiteDAO' => 'lib.pkp.classes.site.SiteDAO',
-            'StageAssignmentDAO' => 'lib.pkp.classes.stageAssignment.StageAssignmentDAO',
-            'SubEditorsDAO' => 'lib.pkp.classes.context.SubEditorsDAO',
-            'SubmissionAgencyDAO' => 'lib.pkp.classes.submission.SubmissionAgencyDAO',
-            'SubmissionAgencyEntryDAO' => 'lib.pkp.classes.submission.SubmissionAgencyEntryDAO',
-            'SubmissionCommentDAO' => 'lib.pkp.classes.submission.SubmissionCommentDAO',
-            'SubmissionDisciplineDAO' => 'lib.pkp.classes.submission.SubmissionDisciplineDAO',
-            'SubmissionDisciplineEntryDAO' => 'lib.pkp.classes.submission.SubmissionDisciplineEntryDAO',
-            'SubmissionEmailLogDAO' => 'lib.pkp.classes.log.SubmissionEmailLogDAO',
-            'SubmissionEventLogDAO' => 'lib.pkp.classes.log.SubmissionEventLogDAO',
-            'SubmissionFileDAO' => 'classes.submission.SubmissionFileDAO',
-            'SubmissionFileEventLogDAO' => 'lib.pkp.classes.log.SubmissionFileEventLogDAO',
-            'QueryDAO' => 'lib.pkp.classes.query.QueryDAO',
-            'SubmissionLanguageDAO' => 'lib.pkp.classes.submission.SubmissionLanguageDAO',
-            'SubmissionLanguageEntryDAO' => 'lib.pkp.classes.submission.SubmissionLanguageEntryDAO',
-            'SubmissionKeywordDAO' => 'lib.pkp.classes.submission.SubmissionKeywordDAO',
-            'SubmissionKeywordEntryDAO' => 'lib.pkp.classes.submission.SubmissionKeywordEntryDAO',
-            'SubmissionSubjectDAO' => 'lib.pkp.classes.submission.SubmissionSubjectDAO',
-            'SubmissionSubjectEntryDAO' => 'lib.pkp.classes.submission.SubmissionSubjectEntryDAO',
-            'TimeZoneDAO' => 'lib.pkp.classes.i18n.TimeZoneDAO',
-            'TemporaryFileDAO' => 'lib.pkp.classes.file.TemporaryFileDAO',
-            'UserGroupAssignmentDAO' => 'lib.pkp.classes.security.UserGroupAssignmentDAO',
-            'UserDAO' => 'lib.pkp.classes.user.UserDAO',
-            'UserGroupDAO' => 'lib.pkp.classes.security.UserGroupDAO',
-            'UserSettingsDAO' => 'lib.pkp.classes.user.UserSettingsDAO',
-            'UserStageAssignmentDAO' => 'lib.pkp.classes.user.UserStageAssignmentDAO',
-            'VersionDAO' => 'lib.pkp.classes.site.VersionDAO',
-            'ViewsDAO' => 'lib.pkp.classes.views.ViewsDAO',
-            'WorkflowStageDAO' => 'lib.pkp.classes.workflow.WorkflowStageDAO',
-            'XMLDAO' => 'lib.pkp.classes.db.XMLDAO',
+            'AccessKeyDAO' => 'PKP\security\AccessKeyDAO',
+            'AnnouncementDAO' => 'PKP\announcement\AnnouncementDAO',
+            'AnnouncementTypeDAO' => 'PKP\announcement\AnnouncementTypeDAO',
+            'AuthSourceDAO' => 'PKP\security\AuthSourceDAO',
+            'CategoryDAO' => 'PKP\context\CategoryDAO',
+            'CitationDAO' => 'PKP\citation\CitationDAO',
+            'ControlledVocabDAO' => 'PKP\controlledVocab\ControlledVocabDAO',
+            'ControlledVocabEntryDAO' => 'PKP\controlledVocab\ControlledVocabEntryDAO',
+            'ControlledVocabEntrySettingsDAO' => 'PKP\controlledVocab\ControlledVocabEntrySettingsDAO',
+            'DataObjectTombstoneDAO' => 'PKP\tombstone\DataObjectTombstoneDAO',
+            'DataObjectTombstoneSettingsDAO' => 'PKP\tombstone\DataObjectTombstoneSettingsDAO',
+            'EditDecisionDAO' => 'PKP\submission\EditDecisionDAO',
+            'EmailTemplateDAO' => 'PKP\mail\EmailTemplateDAO',
+            'FilterDAO' => 'PKP\filter\FilterDAO',
+            'FilterGroupDAO' => 'PKP\filter\FilterGroupDAO',
+            'GenreDAO' => 'PKP\submission\GenreDAO',
+            'InterestDAO' => 'PKP\user\InterestDAO',
+            'InterestEntryDAO' => 'PKP\user\InterestEntryDAO',
+            'LibraryFileDAO' => 'PKP\context\LibraryFileDAO',
+            'NavigationMenuDAO' => 'PKP\navigationMenu\NavigationMenuDAO',
+            'NavigationMenuItemDAO' => 'PKP\navigationMenu\NavigationMenuItemDAO',
+            'NavigationMenuItemAssignmentDAO' => 'PKP\navigationMenu\NavigationMenuItemAssignmentDAO',
+            'NoteDAO' => 'PKP\note\NoteDAO',
+            'NotificationDAO' => 'PKP\notification\NotificationDAO',
+            'NotificationSettingsDAO' => 'PKP\notification\NotificationSettingsDAO',
+            'NotificationSubscriptionSettingsDAO' => 'PKP\notification\NotificationSubscriptionSettingsDAO',
+            'PluginGalleryDAO' => 'PKP\plugins\PluginGalleryDAO',
+            'PluginSettingsDAO' => 'PKP\plugins\PluginSettingsDAO',
+            'PublicationDAO' => 'APP\publication\PublicationDAO',
+            'QueuedPaymentDAO' => 'PKP\payment\QueuedPaymentDAO',
+            'ReviewAssignmentDAO' => 'PKP\submission\reviewAssignment\ReviewAssignmentDAO',
+            'ReviewFilesDAO' => 'PKP\submission\ReviewFilesDAO',
+            'ReviewFormDAO' => 'PKP\reviewForm\ReviewFormDAO',
+            'ReviewFormElementDAO' => 'PKP\reviewForm\ReviewFormElementDAO',
+            'ReviewFormResponseDAO' => 'PKP\reviewForm\ReviewFormResponseDAO',
+            'ReviewRoundDAO' => 'PKP\submission\reviewRound\ReviewRoundDAO',
+            'RoleDAO' => 'PKP\security\RoleDAO',
+            'ScheduledTaskDAO' => 'PKP\scheduledTask\ScheduledTaskDAO',
+            'SessionDAO' => 'PKP\session\SessionDAO',
+            'SiteDAO' => 'PKP\site\SiteDAO',
+            'StageAssignmentDAO' => 'PKP\stageAssignment\StageAssignmentDAO',
+            'SubEditorsDAO' => 'PKP\context\SubEditorsDAO',
+            'SubmissionAgencyDAO' => 'PKP\submission\SubmissionAgencyDAO',
+            'SubmissionAgencyEntryDAO' => 'PKP\submission\SubmissionAgencyEntryDAO',
+            'SubmissionCommentDAO' => 'PKP\submission\SubmissionCommentDAO',
+            'SubmissionDisciplineDAO' => 'PKP\submission\SubmissionDisciplineDAO',
+            'SubmissionDisciplineEntryDAO' => 'PKP\submission\SubmissionDisciplineEntryDAO',
+            'SubmissionEmailLogDAO' => 'PKP\log\SubmissionEmailLogDAO',
+            'SubmissionEventLogDAO' => 'PKP\log\SubmissionEventLogDAO',
+            'SubmissionFileDAO' => 'APP\submission\SubmissionFileDAO',
+            'SubmissionFileEventLogDAO' => 'PKP\log\SubmissionFileEventLogDAO',
+            'QueryDAO' => 'PKP\query\QueryDAO',
+            'SubmissionLanguageDAO' => 'PKP\submission\SubmissionLanguageDAO',
+            'SubmissionLanguageEntryDAO' => 'PKP\submission\SubmissionLanguageEntryDAO',
+            'SubmissionKeywordDAO' => 'PKP\submission\SubmissionKeywordDAO',
+            'SubmissionKeywordEntryDAO' => 'PKP\submission\SubmissionKeywordEntryDAO',
+            'SubmissionSubjectDAO' => 'PKP\submission\SubmissionSubjectDAO',
+            'SubmissionSubjectEntryDAO' => 'PKP\submission\SubmissionSubjectEntryDAO',
+            'TimeZoneDAO' => 'PKP\i18n\TimeZoneDAO',
+            'TemporaryFileDAO' => 'PKP\file\TemporaryFileDAO',
+            'UserGroupAssignmentDAO' => 'PKP\security\UserGroupAssignmentDAO',
+            'UserDAO' => 'PKP\user\UserDAO',
+            'UserGroupDAO' => 'PKP\security\UserGroupDAO',
+            'UserSettingsDAO' => 'PKP\user\UserSettingsDAO',
+            'UserStageAssignmentDAO' => 'PKP\user\UserStageAssignmentDAO',
+            'VersionDAO' => 'PKP\site\VersionDAO',
+            'ViewsDAO' => 'PKP\views\ViewsDAO',
+            'WorkflowStageDAO' => 'PKP\workflow\WorkflowStageDAO',
+            'XMLDAO' => 'PKP\db\XMLDAO',
         ];
     }
 
@@ -563,7 +560,7 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
     public function getMetricTypes($withDisplayNames = false)
     {
         // Retrieve site-level report plugins.
-        $reportPlugins = PluginRegistry::loadCategory('reports', true, CONTEXT_SITE);
+        $reportPlugins = PluginRegistry::loadCategory('reports', true, self::CONTEXT_SITE);
         if (empty($reportPlugins)) {
             return [];
         }
@@ -597,7 +594,7 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
     {
         $request = $this->getRequest();
         $site = $request->getSite();
-        if (!is_a($site, 'Site')) {
+        if (!$site instanceof \PKP\site\Site) {
             return null;
         }
         $defaultMetricType = $site->getData('defaultMetricType');
@@ -677,10 +674,10 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
         }
 
         // Retrieve report plugins.
-        if (is_a($context, 'Context')) {
+        if ($context instanceof \PKP\context\Context) {
             $contextId = $context->getId();
         } else {
-            $contextId = CONTEXT_SITE;
+            $contextId = self::CONTEXT_SITE;
         }
         $reportPlugins = PluginRegistry::loadCategory('reports', true, $contextId);
         if (empty($reportPlugins)) {
@@ -815,14 +812,14 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
      */
     public static function getRoleNames($contextOnly = false, $roleIds = null)
     {
-        $siteRoleNames = [ROLE_ID_SITE_ADMIN => 'user.role.siteAdmin'];
+        $siteRoleNames = [Role::ROLE_ID_SITE_ADMIN => 'user.role.siteAdmin'];
         $appRoleNames = [
-            ROLE_ID_MANAGER => 'user.role.manager',
-            ROLE_ID_SUB_EDITOR => 'user.role.subEditor',
-            ROLE_ID_ASSISTANT => 'user.role.assistant',
-            ROLE_ID_AUTHOR => 'user.role.author',
-            ROLE_ID_REVIEWER => 'user.role.reviewer',
-            ROLE_ID_READER => 'user.role.reader',
+            Role::ROLE_ID_MANAGER => 'user.role.manager',
+            Role::ROLE_ID_SUB_EDITOR => 'user.role.subEditor',
+            Role::ROLE_ID_ASSISTANT => 'user.role.assistant',
+            Role::ROLE_ID_AUTHOR => 'user.role.author',
+            Role::ROLE_ID_REVIEWER => 'user.role.reviewer',
+            Role::ROLE_ID_READER => 'user.role.reader',
         ];
         $roleNames = $contextOnly ? $appRoleNames : $siteRoleNames + $appRoleNames;
         if (!empty($roleIds)) {
@@ -840,8 +837,8 @@ abstract class PKPApplication implements iPKPApplicationInfoProvider
     public static function getWorkflowTypeRoles()
     {
         return [
-            self::WORKFLOW_TYPE_EDITORIAL => [ROLE_ID_SITE_ADMIN, ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR, ROLE_ID_ASSISTANT],
-            self::WORKFLOW_TYPE_AUTHOR => [ROLE_ID_SITE_ADMIN, ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR, ROLE_ID_AUTHOR],
+            self::WORKFLOW_TYPE_EDITORIAL => [Role::ROLE_ID_SITE_ADMIN, Role::ROLE_ID_MANAGER, Role::ROLE_ID_SUB_EDITOR, Role::ROLE_ID_ASSISTANT],
+            self::WORKFLOW_TYPE_AUTHOR => [Role::ROLE_ID_SITE_ADMIN, Role::ROLE_ID_MANAGER, Role::ROLE_ID_SUB_EDITOR, Role::ROLE_ID_AUTHOR],
         ];
     }
 

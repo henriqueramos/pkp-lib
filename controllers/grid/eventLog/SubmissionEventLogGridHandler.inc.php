@@ -21,8 +21,11 @@ use PKP\controllers\grid\DateGridCellProvider;
 use PKP\controllers\grid\GridColumn;
 use PKP\controllers\grid\GridHandler;
 use PKP\core\JSONMessage;
+use PKP\log\EmailLogEntry;
+use PKP\log\EventLogEntry;
 use PKP\security\authorization\internal\UserAccessibleWorkflowStageRequiredPolicy;
 use PKP\security\authorization\SubmissionAccessPolicy;
+use PKP\security\Role;
 
 class SubmissionEventLogGridHandler extends GridHandler
 {
@@ -42,7 +45,7 @@ class SubmissionEventLogGridHandler extends GridHandler
     {
         parent::__construct();
         $this->addRoleAssignment(
-            [ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR],
+            [Role::ROLE_ID_MANAGER, Role::ROLE_ID_SUB_EDITOR],
             ['fetchGrid', 'fetchRow', 'viewEmail']
         );
     }
@@ -95,7 +98,7 @@ class SubmissionEventLogGridHandler extends GridHandler
         $userAssignedRoles = $this->getAuthorizedContextObject(ASSOC_TYPE_ACCESSIBLE_WORKFLOW_STAGES);
         $this->_isCurrentUserAssignedAuthor = false;
         foreach ($userAssignedRoles as $stageId => $roles) {
-            if (in_array(ROLE_ID_AUTHOR, $roles)) {
+            if (in_array(Role::ROLE_ID_AUTHOR, $roles)) {
                 $this->_isCurrentUserAssignedAuthor = true;
                 break;
             }
@@ -211,8 +214,8 @@ class SubmissionEventLogGridHandler extends GridHandler
 
         // Sort the merged data by date, most recent first
         usort($entries, function ($a, $b) {
-            $aDate = is_a($a, 'EventLogEntry') ? $a->getDateLogged() : $a->getDateSent();
-            $bDate = is_a($b, 'EventLogEntry') ? $b->getDateLogged() : $b->getDateSent();
+            $aDate = $a instanceof EventLogEntry ? $a->getDateLogged() : $a->getDateSent();
+            $bDate = $b instanceof EventLogEntry ? $b->getDateLogged() : $b->getDateSent();
 
             if ($aDate == $bDate) {
                 return 0;
@@ -248,7 +251,7 @@ class SubmissionEventLogGridHandler extends GridHandler
      */
     public function _formatEmail($emailLogEntry)
     {
-        assert(is_a($emailLogEntry, 'EmailLogEntry'));
+        assert($emailLogEntry instanceof EmailLogEntry);
 
         $text = [];
         $text[] = __('email.from') . ': ' . htmlspecialchars($emailLogEntry->getFrom());

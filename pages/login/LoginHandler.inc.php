@@ -16,10 +16,12 @@
 use APP\handler\Handler;
 use APP\notification\NotificationManager;
 use APP\template\TemplateManager;
-use PKP\mail\MailTemplate;
 
+use PKP\mail\MailTemplate;
 use PKP\notification\PKPNotification;
 use PKP\security\authorization\RoleBasedHandlerOperationPolicy;
+use PKP\security\Role;
+use PKP\user\form\LoginChangePasswordForm;
 use PKP\validation\FormValidatorReCaptcha;
 
 class LoginHandler extends Handler
@@ -31,7 +33,7 @@ class LoginHandler extends Handler
     {
         switch ($op = $request->getRequestedOp()) {
             case 'signInAsUser':
-                $this->addPolicy(new RoleBasedHandlerOperationPolicy($request, [ROLE_ID_MANAGER, ROLE_ID_SITE_ADMIN], ['signInAsUser']));
+                $this->addPolicy(new RoleBasedHandlerOperationPolicy($request, [Role::ROLE_ID_MANAGER, Role::ROLE_ID_SITE_ADMIN], ['signInAsUser']));
                 break;
         }
         return parent::authorize($request, $args, $roleAssignments);
@@ -90,7 +92,7 @@ class LoginHandler extends Handler
         $context = $this->getTargetContext($request);
         // If there's a context, send them to the dashboard after login.
         if ($context && $request->getUserVar('source') == '' && array_intersect(
-            [ROLE_ID_SITE_ADMIN, ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR, ROLE_ID_AUTHOR, ROLE_ID_REVIEWER, ROLE_ID_ASSISTANT],
+            [Role::ROLE_ID_SITE_ADMIN, Role::ROLE_ID_MANAGER, Role::ROLE_ID_SUB_EDITOR, Role::ROLE_ID_AUTHOR, Role::ROLE_ID_REVIEWER, Role::ROLE_ID_ASSISTANT],
             (array) $this->getAuthorizedContextObject(ASSOC_TYPE_USER_ROLES)
         )) {
             return $request->redirect($context->getPath(), 'dashboard');
@@ -314,7 +316,6 @@ class LoginHandler extends Handler
             'pageTitle' => __('user.changePassword'),
         ]);
 
-        import('lib.pkp.classes.user.form.LoginChangePasswordForm');
         $passwordForm = new LoginChangePasswordForm($request->getSite());
         $passwordForm->initData();
         if (isset($args[0])) {
@@ -330,8 +331,6 @@ class LoginHandler extends Handler
     {
         $this->_isBackendPage = true;
         $this->setupTemplate($request);
-
-        import('lib.pkp.classes.user.form.LoginChangePasswordForm');
 
         $passwordForm = new LoginChangePasswordForm($request->getSite());
         $passwordForm->readInputData();

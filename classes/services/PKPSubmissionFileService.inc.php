@@ -16,21 +16,23 @@ namespace PKP\services;
 
 use APP\core\Application;
 use APP\core\Services;
+
 use PKP\core\Core;
 use PKP\db\DAORegistry;
 use PKP\db\DAOResultFactory;
 use PKP\log\SubmissionEmailLogEntry;
 use PKP\log\SubmissionFileEventLogEntry;
 use PKP\log\SubmissionFileLog;
+use PKP\log\SubmissionLog;
 use PKP\mail\SubmissionMailTemplate;
 use PKP\notification\PKPNotification;
 use PKP\plugins\HookRegistry;
 use PKP\security\authorization\SubmissionFileAccessPolicy;
+use PKP\security\Role;
 use PKP\services\interfaces\EntityPropertyInterface;
 use PKP\services\interfaces\EntityReadInterface;
 use PKP\services\interfaces\EntityWriteInterface;
 use PKP\services\queryBuilders\PKPSubmissionFileQueryBuilder;
-
 use PKP\submission\SubmissionFile;
 use PKP\validation\ValidatorFactory;
 
@@ -348,10 +350,8 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
             ]
         );
 
-        import('lib.pkp.classes.log.SubmissionLog');
-        import('classes.log.SubmissionEventLogEntry');
         $user = $request->getUser();
-        \SubmissionLog::logEvent(
+        SubmissionLog::logEvent(
             $request,
             $submission,
             SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_REVISION_UPLOAD,
@@ -379,7 +379,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
             // Update author notifications
             $authorUserIds = [];
             $stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO'); /** @var StageAssignmentDAO $stageAssignmentDao */
-            $authorAssignments = $stageAssignmentDao->getBySubmissionAndRoleId($submissionFile->getData('submissionId'), ROLE_ID_AUTHOR);
+            $authorAssignments = $stageAssignmentDao->getBySubmissionAndRoleId($submissionFile->getData('submissionId'), Role::ROLE_ID_AUTHOR);
             while ($assignment = $authorAssignments->next()) {
                 if ($assignment->getStageId() == $reviewRound->getStageId()) {
                     $authorUserIds[] = (int) $assignment->getUserId();
@@ -411,7 +411,6 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
                 }
 
                 // Fetch the latest notification email timestamp
-                import('lib.pkp.classes.log.SubmissionEmailLogEntry'); // Import email event constants
                 $submissionEmailLogDao = DAORegistry::getDAO('SubmissionEmailLogDAO'); /** @var SubmissionEmailLogDAO $submissionEmailLogDao */
                 $submissionEmails = $submissionEmailLogDao->getByEventType($submission->getId(), SubmissionEmailLogEntry::SUBMISSION_EMAIL_AUTHOR_NOTIFY_REVISED_VERSION);
                 $lastNotification = null;
@@ -503,11 +502,9 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
             ]
         );
 
-        import('lib.pkp.classes.log.SubmissionLog');
-        import('classes.log.SubmissionEventLogEntry');
         $user = $request->getUser();
         $submission = Services::get('submission')->get($submissionFile->getData('submissionId'));
-        \SubmissionLog::logEvent(
+        SubmissionLog::logEvent(
             $request,
             $submission,
             $newFileUploaded ? SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_REVISION_UPLOAD : SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_EDIT,
@@ -565,7 +562,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
             case SubmissionFile::SUBMISSION_FILE_REVIEW_REVISION:
                 $authorUserIds = [];
                 $stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO'); /** @var StageAssignmentDAO $stageAssignmentDao */
-                $submitterAssignments = $stageAssignmentDao->getBySubmissionAndRoleId($submissionFile->getData('submissionId'), ROLE_ID_AUTHOR);
+                $submitterAssignments = $stageAssignmentDao->getBySubmissionAndRoleId($submissionFile->getData('submissionId'), Role::ROLE_ID_AUTHOR);
                 while ($assignment = $submitterAssignments->next()) {
                     $authorUserIds[] = $assignment->getUserId();
                 }
@@ -607,9 +604,7 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
         }
 
         // Log the deletion
-        import('lib.pkp.classes.log.SubmissionFileLog');
-        import('lib.pkp.classes.log.SubmissionFileEventLogEntry'); // constants
-        \SubmissionFileLog::logEvent(
+        SubmissionFileLog::logEvent(
             Application::get()->getRequest(),
             $submissionFile,
             SubmissionFileEventLogEntry::SUBMISSION_LOG_FILE_DELETE,
@@ -651,8 +646,8 @@ class PKPSubmissionFileService implements EntityPropertyInterface, EntityReadInt
      */
     public function getAssignedFileStages($stageAssignments, $action)
     {
-        $allowedRoles = [ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR, ROLE_ID_ASSISTANT, ROLE_ID_AUTHOR];
-        $notAuthorRoles = array_diff($allowedRoles, [ROLE_ID_AUTHOR]);
+        $allowedRoles = [Role::ROLE_ID_MANAGER, Role::ROLE_ID_SUB_EDITOR, Role::ROLE_ID_ASSISTANT, Role::ROLE_ID_AUTHOR];
+        $notAuthorRoles = array_diff($allowedRoles, [Role::ROLE_ID_AUTHOR]);
 
         $allowedFileStages = [];
 

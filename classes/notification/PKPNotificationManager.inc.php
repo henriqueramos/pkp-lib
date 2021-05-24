@@ -26,10 +26,11 @@ use PKP\notification\managerDelegate\EditorAssignmentNotificationManager;
 use PKP\notification\managerDelegate\EditorDecisionNotificationManager;
 use PKP\notification\managerDelegate\EditorialReportNotificationManager;
 use PKP\notification\managerDelegate\PendingRevisionsNotificationManager;
-
 use PKP\notification\managerDelegate\PKPEditingProductionStatusNotificationManager;
+
 use PKP\notification\managerDelegate\QueryNotificationManager;
 use PKP\notification\managerDelegate\SubmissionNotificationManager;
+use PKP\security\Role;
 
 class PKPNotificationManager extends PKPNotificationOperationManager
 {
@@ -167,7 +168,7 @@ class PKPNotificationManager extends PKPNotificationOperationManager
 
                 AppLocale::requireComponents(LOCALE_COMPONENT_APP_EDITOR); // load review round status keys.
                 $user = $request->getUser();
-                $stageAssignments = $stageAssignmentDao->getBySubmissionAndRoleId($reviewRound->getSubmissionId(), ROLE_ID_AUTHOR, null, $user->getId());
+                $stageAssignments = $stageAssignmentDao->getBySubmissionAndRoleId($reviewRound->getSubmissionId(), Role::ROLE_ID_AUTHOR, null, $user->getId());
                 $isAuthor = (bool) $stageAssignments->next();
                 return __($reviewRound->getStatusKey($isAuthor));
             case PKPNotification::NOTIFICATION_TYPE_PAYMENT_REQUIRED:
@@ -379,7 +380,7 @@ class PKPNotificationManager extends PKPNotificationOperationManager
         $returner = false;
         foreach ($notificationTypes as $type) {
             $managerDelegate = $this->getMgrDelegate($type, $assocType, $assocId);
-            if (!is_null($managerDelegate) && is_a($managerDelegate, 'NotificationManagerDelegate')) {
+            if (!is_null($managerDelegate) && $managerDelegate instanceof \PKP\notification\NotificationManagerDelegate) {
                 $returner = $managerDelegate->updateNotification($request, $userIds, $assocType, $assocId);
             } else {
                 assert(false);
@@ -489,7 +490,7 @@ class PKPNotificationManager extends PKPNotificationOperationManager
     protected function getByDelegate($notificationType, $assocType, $assocId, $operationName, $parameters)
     {
         $delegate = $this->getMgrDelegate($notificationType, $assocType, $assocId);
-        if (is_a($delegate, 'NotificationManagerDelegate')) {
+        if ($delegate instanceof \PKP\notification\NotificationManagerDelegate) {
             return call_user_func_array([$delegate, $operationName], $parameters);
         } else {
             return null;

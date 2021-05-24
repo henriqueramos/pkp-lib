@@ -17,9 +17,13 @@
  * application's specifics.
  */
 
-use Illuminate\Support\Facades\DB;
+namespace PKP\plugins\importexport;
 
-import('lib.pkp.classes.plugins.importexport.PKPImportExportFilter');
+use APP\i18n\AppLocale;
+use Illuminate\Support\Facades\DB;
+use PKP\core\PKPApplication;
+
+use PKP\db\DAORegistry;
 
 class PKPImportExportDeployment
 {
@@ -711,4 +715,8 @@ class PKPImportExportDeployment
 
         return false;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\plugins\importexport\PKPImportExportDeployment', '\PKPImportExportDeployment');
 }

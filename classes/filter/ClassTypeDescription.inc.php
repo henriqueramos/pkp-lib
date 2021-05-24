@@ -42,7 +42,7 @@ class ClassTypeDescription extends TypeDescription
      */
     public function getNamespace()
     {
-        return TYPE_DESCRIPTION_NAMESPACE_CLASS;
+        return \PKP\filter\TypeDescriptionFactory::TYPE_DESCRIPTION_NAMESPACE_CLASS;
     }
 
 
@@ -78,7 +78,7 @@ class ClassTypeDescription extends TypeDescription
         }
 
         // Check the object's class
-        if (!is_a($object, $this->_className)) {
+        if (!$object instanceof $this->_className) {
             return false;
         }
 

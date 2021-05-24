@@ -72,7 +72,7 @@ class UserForm extends Form
     public function display($request = null, $template = null)
     {
         $context = $request->getContext();
-        $contextId = $context ? $context->getId() : CONTEXT_ID_NONE;
+        $contextId = $context ? $context->getId() : \PKP\core\PKPApplication::CONTEXT_ID_NONE;
         $templateMgr = TemplateManager::getManager($request);
 
         $allUserGroups = [];
@@ -96,7 +96,6 @@ class UserForm extends Form
     public function execute(...$functionArgs)
     {
         if (isset($this->userId)) {
-            import('lib.pkp.classes.security.UserGroupAssignmentDAO');
             $userGroupAssignmentDao = DAORegistry::getDAO('UserGroupAssignmentDAO'); /** @var UserGroupAssignmentDAO $userGroupAssignmentDao */
             $userGroupAssignmentDao->deleteAssignmentsByContextId(Application::get()->getRequest()->getContext()->getId(), $this->userId);
             if ($this->getData('userGroupIds')) {

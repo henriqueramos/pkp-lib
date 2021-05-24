@@ -16,12 +16,15 @@
 
 use APP\notification\NotificationManager;
 use APP\template\TemplateManager;
+
 use PKP\controllers\grid\users\reviewer\PKPReviewerGridHandler;
 use PKP\form\Form;
 use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxAction;
 use PKP\mail\SubmissionMailTemplate;
 use PKP\notification\PKPNotification;
-
+use PKP\security\AccessKeyManager;
+use PKP\security\Role;
 use PKP\submission\action\EditorAction;
 use PKP\submission\SubmissionFile;
 
@@ -297,7 +300,7 @@ class ReviewerForm extends Form
 
         $userRoles = $roleDao->getByUserId($user->getId(), $submission->getData('contextId'));
         foreach ($userRoles as $userRole) {
-            if (in_array($userRole->getId(), [ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR, ROLE_ID_ASSISTANT])) {
+            if (in_array($userRole->getId(), [Role::ROLE_ID_MANAGER, Role::ROLE_ID_SUB_EDITOR, Role::ROLE_ID_ASSISTANT])) {
                 $emailTemplatesIterator = Services::get('emailTemplate')->getMany([
                     'contextId' => $submission->getData('contextId'),
                     'isCustom' => true,
@@ -324,7 +327,7 @@ class ReviewerForm extends Form
         $context = $request->getContext();
         $userGroupDao = DAORegistry::getDAO('UserGroupDAO'); /** @var UserGroupDAO $userGroupDao */
         $reviewRound = $this->getReviewRound();
-        $reviewerUserGroups = $userGroupDao->getUserGroupsByStage($context->getId(), $reviewRound->getStageId(), ROLE_ID_REVIEWER);
+        $reviewerUserGroups = $userGroupDao->getUserGroupsByStage($context->getId(), $reviewRound->getStageId(), Role::ROLE_ID_REVIEWER);
         $userGroups = [];
         while ($userGroup = $reviewerUserGroups->next()) {
             $userGroups[$userGroup->getId()] = $userGroup->getLocalizedName();
@@ -432,7 +435,6 @@ class ReviewerForm extends Form
             // Set the additional arguments for the one click url
             $reviewUrlArgs = ['submissionId' => $this->getSubmissionId()];
             if ($context->getData('reviewerAccessKeysEnabled')) {
-                import('lib.pkp.classes.security.AccessKeyManager');
                 $accessKeyManager = new AccessKeyManager();
                 $expiryDays = ($context->getData('numWeeksPerReview') + 4) * 7;
                 $accessKey = $accessKeyManager->createKey($context->getId(), $reviewerId, $reviewAssignment->getId(), $expiryDays);

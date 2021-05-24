@@ -19,6 +19,8 @@ use APP\core\Services;
 use PKP\db\DAORegistry;
 use PKP\db\DAOResultFactory;
 use PKP\db\DBResultRange;
+use PKP\security\Role;
+use PKP\security\UserGroupDAO;
 use PKP\services\interfaces\EntityPropertyInterface;
 use PKP\services\interfaces\EntityReadInterface;
 
@@ -120,7 +122,7 @@ class PKPUserService implements EntityPropertyInterface, EntityReadInterface
     public function getQueryBuilder($args = [])
     {
         $defaultArgs = [
-            'contextId' => CONTEXT_ID_NONE,
+            'contextId' => \PKP\core\PKPApplication::CONTEXT_ID_NONE,
             'orderBy' => 'id',
             'orderDirection' => 'DESC',
             'roleIds' => null,
@@ -234,7 +236,7 @@ class PKPUserService implements EntityPropertyInterface, EntityReadInterface
     public function getReviewersQueryBuilder($args = [])
     {
         $args = array_merge([
-            'contextId' => CONTEXT_ID_NONE,
+            'contextId' => \PKP\core\PKPApplication::CONTEXT_ID_NONE,
             'reviewStage' => null,
             'reviewsCompleted' => null,
             'reviewsActive' => null,
@@ -242,7 +244,7 @@ class PKPUserService implements EntityPropertyInterface, EntityReadInterface
             'averageCompletion' => null,
             'reviewerRating' => null,
         ], $args, [
-            'roleIds' => ROLE_ID_REVIEWER,
+            'roleIds' => Role::ROLE_ID_REVIEWER,
         ]);
 
         $reviewerListQB = $this->getQueryBuilder($args);
@@ -385,7 +387,6 @@ class PKPUserService implements EntityPropertyInterface, EntityReadInterface
                 case 'groups':
                     $values[$prop] = null;
                     if ($context) {
-                        import('lib.pkp.classes.security.UserGroupDAO');
                         $userGroupDao = DAORegistry::getDAO('UserGroupDAO'); /** @var UserGroupDAO $userGroupDao */
                         $userGroups = $userGroupDao->getByUserId($user->getId(), $context->getId());
                         $values[$prop] = [];
@@ -515,7 +516,7 @@ class PKPUserService implements EntityPropertyInterface, EntityReadInterface
     {
         $request = Application::get()->getRequest();
         $context = $request->getContext();
-        $contextId = $context ? $context->getId() : CONTEXT_ID_NONE;
+        $contextId = $context ? $context->getId() : \PKP\core\PKPApplication::CONTEXT_ID_NONE;
         $currentUser = $request->getUser();
 
         // Logged out users can never view gossip fields
@@ -529,12 +530,12 @@ class PKPUserService implements EntityPropertyInterface, EntityReadInterface
         }
 
         // Only reviewers have gossip fields
-        if (!$this->userHasRole($userId, ROLE_ID_REVIEWER, $contextId)) {
+        if (!$this->userHasRole($userId, Role::ROLE_ID_REVIEWER, $contextId)) {
             return false;
         }
 
         // Only admins, editors and subeditors can view gossip fields
-        if (!$this->userHasRole($currentUser->getId(), [ROLE_ID_MANAGER, ROLE_ID_SITE_ADMIN, ROLE_ID_SUB_EDITOR], $contextId)) {
+        if (!$this->userHasRole($currentUser->getId(), [Role::ROLE_ID_MANAGER, Role::ROLE_ID_SITE_ADMIN, Role::ROLE_ID_SUB_EDITOR], $contextId)) {
             return false;
         }
 
@@ -563,7 +564,7 @@ class PKPUserService implements EntityPropertyInterface, EntityReadInterface
             && !empty(array_intersect($workflowRoles, $userAccessibleStages[$stageId]))) {
             return true;
         }
-        if (empty($userAccessibleStages) && in_array(ROLE_ID_MANAGER, $userRoles)) {
+        if (empty($userAccessibleStages) && in_array(Role::ROLE_ID_MANAGER, $userRoles)) {
             return true;
         }
         return false;
@@ -599,7 +600,7 @@ class PKPUserService implements EntityPropertyInterface, EntityReadInterface
             $roleDao = DAORegistry::getDAO('RoleDAO'); /** @var RoleDAO $roleDao */
             $userRoles = $roleDao->getByUserId($userId, $contextId);
             foreach ($userRoles as $userRole) {
-                if (in_array($userRole->getId(), [ROLE_ID_SITE_ADMIN, ROLE_ID_MANAGER])) {
+                if (in_array($userRole->getId(), [Role::ROLE_ID_SITE_ADMIN, Role::ROLE_ID_MANAGER])) {
                     $accessibleStageRoles[] = $userRole->getId();
                 }
             }
@@ -649,7 +650,7 @@ class PKPUserService implements EntityPropertyInterface, EntityReadInterface
 
         // Don't include the admin user if we are limiting the overview to one context
         if (!empty($args['contextId'])) {
-            unset($roleNames[ROLE_ID_SITE_ADMIN]);
+            unset($roleNames[Role::ROLE_ID_SITE_ADMIN]);
         }
 
         foreach ($roleNames as $roleId => $roleName) {

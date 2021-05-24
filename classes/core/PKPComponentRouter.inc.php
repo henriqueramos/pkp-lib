@@ -61,14 +61,12 @@ define('COMPONENT_ROUTER_PARTS_MAXDEPTH', 9);
 define('COMPONENT_ROUTER_PARTS_MAXLENGTH', 50);
 define('COMPONENT_ROUTER_PARTS_MINLENGTH', 2);
 
-import('lib.pkp.classes.core.PKPRouter');
-import('classes.core.Request');
+use APP\core\Request;
 
 use APP\i18n\AppLocale;
 use Exception;
 
 use PKP\config\Config;
-
 use PKP\plugins\HookRegistry;
 
 class PKPComponentRouter extends PKPRouter
@@ -322,7 +320,7 @@ class PKPComponentRouter extends PKPRouter
         //
         // We only support component/op retrieval from the request
         // if this request is a component request.
-        $currentRequestIsAComponentRequest = is_a($request->getRouter(), 'PKPComponentRouter');
+        $currentRequestIsAComponentRequest = $request->getRouter() instanceof self;
         if ($currentRequestIsAComponentRequest) {
             if (empty($component)) {
                 $component = $this->getRequestedComponent($request);

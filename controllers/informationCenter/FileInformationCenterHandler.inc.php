@@ -18,11 +18,13 @@ import('lib.pkp.controllers.informationCenter.InformationCenterHandler');
 // use Exception;
 
 use APP\template\TemplateManager;
+
+use PKP\core\ArrayItemIterator;
 use PKP\core\JSONMessage;
 use PKP\log\EventLogEntry;
 use PKP\notification\PKPNotification;
-
 use PKP\security\authorization\WorkflowStageAccessPolicy;
+use PKP\security\Role;
 
 class FileInformationCenterHandler extends InformationCenterHandler
 {
@@ -39,7 +41,7 @@ class FileInformationCenterHandler extends InformationCenterHandler
     {
         parent::__construct();
         $this->addRoleAssignment(
-            [ROLE_ID_ASSISTANT],
+            [Role::ROLE_ID_ASSISTANT],
             [
                 'viewInformationCenter',
                 'viewHistory',
@@ -132,7 +134,6 @@ class FileInformationCenterHandler extends InformationCenterHandler
 
         $submissionFile = $this->submissionFile;
         $notes = $noteDao->getByAssoc($this->_getAssocType(), $submissionFile->getData('sourceSubmissionFileId'))->toArray();
-        import('lib.pkp.classes.core.ArrayItemIterator');
         $templateMgr->assign('notes', new ArrayItemIterator($notes));
 
         $user = $request->getUser();

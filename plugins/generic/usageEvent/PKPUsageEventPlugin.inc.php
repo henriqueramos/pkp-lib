@@ -14,9 +14,12 @@
  * other statistics plugins.
  */
 
+use APP\core\Application;
 use APP\template\TemplateManager;
+use PKP\plugins\GenericPlugin;
 
-import('lib.pkp.classes.plugins.GenericPlugin');
+use PKP\plugins\HookRegistry;
+use PKP\security\Role;
 
 // User classification types.
 define('USAGE_EVENT_PLUGIN_CLASSIFICATION_BOT', 'bot');
@@ -123,7 +126,7 @@ abstract class PKPUsageEventPlugin extends GenericPlugin
      */
     public function getUniqueSiteId()
     {
-        return $this->getSetting(CONTEXT_SITE, 'uniqueSiteId');
+        return $this->getSetting(\PKP\core\PKPApplication::CONTEXT_SITE, 'uniqueSiteId');
     }
 
 
@@ -316,7 +319,7 @@ abstract class PKPUsageEventPlugin extends GenericPlugin
         if ($user) {
             $roleDao = DAORegistry::getDAO('RoleDAO'); /** @var PKPRoleDAO $roleDao */
             $rolesByContext = $roleDao->getByUserIdGroupedByContext($user->getId());
-            foreach ([CONTEXT_SITE, $context->getId()] as $workingContext) {
+            foreach ([\PKP\core\PKPApplication::CONTEXT_SITE, $context->getId()] as $workingContext) {
                 if (isset($rolesByContext[$workingContext])) {
                     foreach ($rolesByContext[$workingContext] as $roleId => $role) {
                         $roles[] = $roleId;
@@ -329,7 +332,7 @@ abstract class PKPUsageEventPlugin extends GenericPlugin
         $classification = null;
         if (!empty($roles)) {
             // Access by editors, authors, etc.
-            $internalRoles = array_diff($roles, [ROLE_ID_READER]);
+            $internalRoles = array_diff($roles, [Role::ROLE_ID_READER]);
             if (!empty($internalRoles)) {
                 $classification = USAGE_EVENT_PLUGIN_CLASSIFICATION_ADMIN;
             }

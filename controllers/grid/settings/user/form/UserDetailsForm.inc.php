@@ -21,6 +21,7 @@ use APP\notification\NotificationManager;
 use APP\template\TemplateManager;
 use PKP\mail\MailTemplate;
 use PKP\notification\PKPNotification;
+use PKP\user\InterestManager;
 
 class UserDetailsForm extends UserForm
 {
@@ -102,14 +103,13 @@ class UserDetailsForm extends UserForm
     {
         $request = Application::get()->getRequest();
         $context = $request->getContext();
-        $contextId = $context ? $context->getId() : CONTEXT_ID_NONE;
+        $contextId = $context ? $context->getId() : \PKP\core\PKPApplication::CONTEXT_ID_NONE;
 
         $data = [];
 
         if (isset($this->user)) {
             $user = $this->user;
 
-            import('lib.pkp.classes.user.InterestManager');
             $interestManager = new InterestManager();
 
             $data = [
@@ -358,7 +358,6 @@ class UserDetailsForm extends UserForm
             }
         }
 
-        import('lib.pkp.classes.user.InterestManager');
         $interestManager = new InterestManager();
         $interestManager->setInterestsForUser($this->user, $this->getData('interests'));
 

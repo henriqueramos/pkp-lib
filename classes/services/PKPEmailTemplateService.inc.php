@@ -26,10 +26,10 @@ use PKP\services\interfaces\EntityWriteInterface;
 use PKP\services\queryBuilders\PKPEmailTemplateQueryBuilder;
 use PKP\validation\ValidatorFactory;
 
-define('EMAIL_TEMPLATE_STAGE_DEFAULT', 0);
-
 class PKPEmailTemplateService implements EntityPropertyInterface, EntityReadInterface, EntityWriteInterface
 {
+    public const EMAIL_TEMPLATE_STAGE_DEFAULT = 0;
+
     /**
      * Do not use. An email template should be retrieved by its key.
      *
@@ -125,7 +125,7 @@ class PKPEmailTemplateService implements EntityPropertyInterface, EntityReadInte
         $context = Application::get()->getRequest()->getContext();
 
         $defaultArgs = [
-            'contextId' => $context ? $context->getId() : CONTEXT_SITE,
+            'contextId' => $context ? $context->getId() : \PKP\core\PKPApplication::CONTEXT_SITE,
             'isEnabled' => null,
             'isCustom' => null,
             'fromRoleIds' => null,
@@ -285,7 +285,7 @@ class PKPEmailTemplateService implements EntityPropertyInterface, EntityReadInte
             $contextId = $emailTemplate->getData('contextId');
         } else {
             $context = $request->getContext();
-            $contextId = $context ? $context->getId() : CONTEXT_SITE;
+            $contextId = $context ? $context->getId() : \PKP\core\PKPApplication::CONTEXT_SITE;
         }
 
         $emailTemplateDao = DAORegistry::getDAO('EmailTemplateDAO'); /** @var EmailTemplateDAO $emailTemplateDao */
@@ -322,7 +322,7 @@ class PKPEmailTemplateService implements EntityPropertyInterface, EntityReadInte
             $contextId = $newEmailTemplate->getData('contextId');
         } else {
             $context = $request->getContext();
-            $contextId = $context ? $context->getId() : CONTEXT_SITE;
+            $contextId = $context ? $context->getId() : \PKP\core\PKPApplication::CONTEXT_SITE;
         }
 
         $newEmailTemplate = $this->getByKey($contextId, $newEmailTemplate->getData('key'));
@@ -363,4 +363,8 @@ class PKPEmailTemplateService implements EntityPropertyInterface, EntityReadInte
         HookRegistry::call('EmailTemplate::restoreDefaults', [&$deletedKeys, $contextId]);
         return $deletedKeys;
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    define('EMAIL_TEMPLATE_STAGE_DEFAULT', constant('\PKP\services\PKPEmailTemplateService::EMAIL_TEMPLATE_STAGE_DEFAULT'));
 }

@@ -15,11 +15,13 @@
 
 use APP\handler\Handler;
 use APP\template\TemplateManager;
+
 use PKP\core\JSONMessage;
 use PKP\log\EventLogEntry;
-
+use PKP\log\SubmissionFileLog;
 use PKP\notification\PKPNotification;
 use PKP\security\authorization\SubmissionAccessPolicy;
+use PKP\security\Role;
 
 abstract class InformationCenterHandler extends Handler
 {
@@ -33,7 +35,7 @@ abstract class InformationCenterHandler extends Handler
     {
         parent::__construct();
         $this->addRoleAssignment(
-            [ROLE_ID_SUB_EDITOR, ROLE_ID_MANAGER],
+            [Role::ROLE_ID_SUB_EDITOR, Role::ROLE_ID_MANAGER],
             [
                 'viewInformationCenter',
                 'viewHistory',
@@ -195,7 +197,6 @@ abstract class InformationCenterHandler extends Handler
             default:
                 assert(false);
         }
-        import('lib.pkp.classes.log.SubmissionFileLog');
         $logClass::logEvent($request, $object, $eventType, $logMessage);
     }
 

@@ -19,17 +19,21 @@ use APP\core\Application;
 use APP\core\Services;
 use APP\services\queryBuilders\SubmissionQueryBuilder;
 use APP\submission\Submission;
+
 use PKP\core\Core;
 use PKP\db\DAORegistry;
 use PKP\db\DAOResultFactory;
 use PKP\db\DBResultRange;
+use PKP\plugins\HookRegistry;
+use PKP\security\Role;
 use PKP\services\interfaces\EntityPropertyInterface;
 use PKP\services\interfaces\EntityReadInterface;
 use PKP\services\interfaces\EntityWriteInterface;
-
+use PKP\stageAssignment\StageAssignmentDAO;
 use PKP\submission\PKPSubmission;
 use PKP\submission\SubmissionFile;
 use PKP\validation\ValidatorFactory;
+use PKP\workflow\WorkflowStageDAO;
 
 abstract class PKPSubmissionService implements EntityPropertyInterface, EntityReadInterface, EntityWriteInterface
 {
@@ -143,7 +147,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
     public function getQueryBuilder($args = [])
     {
         $defaultArgs = [
-            'contextId' => CONTEXT_ID_NONE,
+            'contextId' => \PKP\core\PKPApplication::CONTEXT_ID_NONE,
             'orderBy' => 'dateSubmitted',
             'orderDirection' => 'DESC',
             'assignedTo' => [],
@@ -178,7 +182,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
             $submissionListQB->offsetBy($args['count']);
         }
 
-        \HookRegistry::call('Submission::getMany::queryBuilder', [&$submissionListQB, $args]);
+        HookRegistry::call('Submission::getMany::queryBuilder', [&$submissionListQB, $args]);
 
         return $submissionListQB;
     }
@@ -275,7 +279,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
 
         $values = Services::get('schema')->addMissingMultilingualValues(PKPSchemaService::SCHEMA_SUBMISSION, $values, $request->getContext()->getSupportedSubmissionLocales());
 
-        \HookRegistry::call('Submission::getProperties::values', [&$values, $submission, $props, $args]);
+        HookRegistry::call('Submission::getProperties::values', [&$values, $submission, $props, $args]);
 
         ksort($values);
 
@@ -324,7 +328,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
             'statusLabel','submissionProgress','urlAuthorWorkflow','urlEditorialWorkflow','urlWorkflow','urlPublished',
         ];
 
-        \HookRegistry::call('Submission::getBackendListProperties::properties', [&$props, $submission, $args]);
+        HookRegistry::call('Submission::getBackendListProperties::properties', [&$props, $submission, $args]);
 
         return $this->getProperties($submission, $props, $args);
     }
@@ -433,11 +437,10 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
 
         $currentUser = \Application::get()->getRequest()->getUser();
         $context = \Application::get()->getRequest()->getContext();
-        $contextId = $context ? $context->getId() : CONTEXT_ID_NONE;
+        $contextId = $context ? $context->getId() : \PKP\core\PKPApplication::CONTEXT_ID_NONE;
 
         $stages = [];
         foreach ($stageIds as $stageId) {
-            import('lib.pkp.classes.workflow.WorkflowStageDAO');
             $workflowStageDao = DAORegistry::getDAO('WorkflowStageDAO'); /** @var WorkflowStageDAO $workflowStageDao */
             $stage = [
                 'id' => (int) $stageId,
@@ -483,7 +486,6 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
             switch ($stageId) {
 
                 case WORKFLOW_STAGE_ID_SUBMISSION:
-                    import('lib.pkp.classes.stageAssignment.StageAssignmentDAO');
                     $stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO'); /** @var StageAssignmentDAO $stageAssignmentDao */
                     $assignedEditors = $stageAssignmentDao->editorAssignedToStage($submission->getId(), $stageId);
                     if (!$assignedEditors) {
@@ -594,7 +596,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
         // Check if the user is an author of this submission
         $userGroupDao = DAORegistry::getDAO('UserGroupDAO'); /** @var UserGroupDAO $userGroupDao */
         $stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO'); /** @var StageAssignmentDAO $stageAssignmentDao */
-        $authorUserGroupIds = $userGroupDao->getUserGroupIdsByRoleId(ROLE_ID_AUTHOR);
+        $authorUserGroupIds = $userGroupDao->getUserGroupIdsByRoleId(Role::ROLE_ID_AUTHOR);
         $stageAssignmentsFactory = $stageAssignmentDao->getBySubmissionAndStageId($submission->getId(), null, null, $user->getId());
 
         $authorDashboard = false;
@@ -608,8 +610,8 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
         // wizard for incomplete submissions
         if ($submission->getSubmissionProgress() > 0 &&
             ($authorDashboard ||
-                $user->hasRole([ROLE_ID_MANAGER], $submissionContext->getId()) ||
-                $user->hasRole([ROLE_ID_SITE_ADMIN], CONTEXT_SITE))) {
+                $user->hasRole([Role::ROLE_ID_MANAGER], $submissionContext->getId()) ||
+                $user->hasRole([Role::ROLE_ID_SITE_ADMIN], \PKP\core\PKPApplication::CONTEXT_SITE))) {
             return $dispatcher->url(
                 $request,
                 \PKPApplication::ROUTE_PAGE,
@@ -687,12 +689,12 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
 
         // Only allow admins and journal managers to delete submissions, except
         // for authors who can delete their own incomplete submissions
-        if ($currentUser->hasRole([ROLE_ID_MANAGER], $contextId) || $currentUser->hasRole([ROLE_ID_SITE_ADMIN], CONTEXT_SITE)) {
+        if ($currentUser->hasRole([Role::ROLE_ID_MANAGER], $contextId) || $currentUser->hasRole([Role::ROLE_ID_SITE_ADMIN], \PKP\core\PKPApplication::CONTEXT_SITE)) {
             $canDelete = true;
         } else {
             if ($submission->getSubmissionProgress() != 0) {
                 $stageAssignmentDao = DAORegistry::getDAO('StageAssignmentDAO'); /** @var StageAssignmentDAO $stageAssignmentDao */
-                $assignments = $stageAssignmentDao->getBySubmissionAndRoleId($submission->getId(), ROLE_ID_AUTHOR, WORKFLOW_STAGE_ID_SUBMISSION, $currentUser->getId());
+                $assignments = $stageAssignmentDao->getBySubmissionAndRoleId($submission->getId(), Role::ROLE_ID_AUTHOR, WORKFLOW_STAGE_ID_SUBMISSION, $currentUser->getId());
                 $assignment = $assignments->next();
                 if ($assignment) {
                     $canDelete = true;
@@ -768,7 +770,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
             $errors = $schemaService->formatValidationErrors($validator->errors(), $schemaService->get(PKPSchemaService::SCHEMA_SUBMISSION), $allowedLocales);
         }
 
-        \HookRegistry::call('Submission::validate', [&$errors, $action, $props, $allowedLocales, $primaryLocale]);
+        HookRegistry::call('Submission::validate', [&$errors, $action, $props, $allowedLocales, $primaryLocale]);
 
         return $errors;
     }
@@ -787,7 +789,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
         $submissionId = $submissionDao->insertObject($submission);
         $submission = $this->get($submissionId);
 
-        \HookRegistry::call('Submission::add', [&$submission, $request]);
+        HookRegistry::call('Submission::add', [&$submission, $request]);
 
         return $submission;
     }
@@ -804,7 +806,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
         $submission->stampLastActivity();
         $submission->stampModified();
 
-        \HookRegistry::call('Submission::edit', [&$newSubmission, $submission, $params, $request]);
+        HookRegistry::call('Submission::edit', [&$newSubmission, $submission, $params, $request]);
 
         $submissionDao->updateObject($newSubmission);
         $newSubmission = $this->get($newSubmission->getId());
@@ -817,12 +819,12 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
      */
     public function delete($submission)
     {
-        \HookRegistry::call('Submission::delete::before', [&$submission]);
+        HookRegistry::call('Submission::delete::before', [&$submission]);
 
         $submissionDao = DAORegistry::getDAO('SubmissionDAO'); /** @var SubmissionDAO $submissionDao */
         $submissionDao->deleteObject($submission);
 
-        \HookRegistry::call('Submission::delete', [&$submission]);
+        HookRegistry::call('Submission::delete', [&$submission]);
     }
 
     /**
@@ -923,7 +925,7 @@ abstract class PKPSubmissionService implements EntityPropertyInterface, EntityRe
             }
         }
 
-        \HookRegistry::call('Submission::updateStatus', [&$status, $submission]);
+        HookRegistry::call('Submission::updateStatus', [&$status, $submission]);
 
         $updateParams = [];
         if ($status !== $newStatus) {

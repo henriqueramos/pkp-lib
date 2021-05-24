@@ -23,8 +23,9 @@ use PKP\linkAction\LinkAction;
 use PKP\linkAction\request\AjaxModal;
 use PKP\notification\PKPNotification;
 use PKP\security\authorization\PolicySet;
-
 use PKP\security\authorization\RoleBasedHandlerOperationPolicy;
+
+use PKP\security\Role;
 
 class NavigationMenusGridHandler extends GridHandler
 {
@@ -35,7 +36,7 @@ class NavigationMenusGridHandler extends GridHandler
     {
         parent::__construct();
         $this->addRoleAssignment(
-            ROLE_ID_MANAGER,
+            Role::ROLE_ID_MANAGER,
             $ops = [
                 'fetchGrid', 'fetchRow',
                 'addNavigationMenu', 'editNavigationMenu',
@@ -43,7 +44,7 @@ class NavigationMenusGridHandler extends GridHandler
                 'deleteNavigationMenu'
             ]
         );
-        $this->addRoleAssignment(ROLE_ID_SITE_ADMIN, $ops);
+        $this->addRoleAssignment(Role::ROLE_ID_SITE_ADMIN, $ops);
     }
 
     //
@@ -55,7 +56,7 @@ class NavigationMenusGridHandler extends GridHandler
     public function authorize($request, &$args, $roleAssignments)
     {
         $context = $request->getContext();
-        $contextId = $context ? $context->getId() : CONTEXT_ID_NONE;
+        $contextId = $context ? $context->getId() : \PKP\core\PKPApplication::CONTEXT_ID_NONE;
 
         $rolePolicy = new PolicySet(PolicySet::COMBINING_PERMIT_OVERRIDES);
 
@@ -144,7 +145,7 @@ class NavigationMenusGridHandler extends GridHandler
     {
         $context = $request->getContext();
 
-        $contextId = CONTEXT_ID_NONE;
+        $contextId = \PKP\core\PKPApplication::CONTEXT_ID_NONE;
         if ($context) {
             $contextId = $context->getId();
         }
@@ -190,7 +191,7 @@ class NavigationMenusGridHandler extends GridHandler
     {
         $navigationMenuId = (int)$request->getUserVar('navigationMenuId');
         $context = $request->getContext();
-        $contextId = CONTEXT_ID_NONE;
+        $contextId = \PKP\core\PKPApplication::CONTEXT_ID_NONE;
         if ($context) {
             $contextId = $context->getId();
         }
@@ -214,7 +215,7 @@ class NavigationMenusGridHandler extends GridHandler
         // Identify the NavigationMenu id.
         $navigationMenuId = $request->getUserVar('navigationMenuId');
         $context = $request->getContext();
-        $contextId = CONTEXT_ID_NONE;
+        $contextId = \PKP\core\PKPApplication::CONTEXT_ID_NONE;
         if ($context) {
             $contextId = $context->getId();
         }
@@ -260,7 +261,7 @@ class NavigationMenusGridHandler extends GridHandler
         $context = $request->getContext();
 
         $navigationMenuDao = DAORegistry::getDAO('NavigationMenuDAO'); /** @var NavigationMenuDAO $navigationMenuDao */
-        $navigationMenu = $navigationMenuDao->getById($navigationMenuId, $context ? $context->getId() : CONTEXT_SITE);
+        $navigationMenu = $navigationMenuDao->getById($navigationMenuId, $context ? $context->getId() : \PKP\core\PKPApplication::CONTEXT_SITE);
         if ($navigationMenu && $request->checkCSRF()) {
             $navigationMenuDao->deleteObject($navigationMenu);
 

@@ -76,7 +76,7 @@ class DAORegistry
             }
 
             // Only instantiate each class of DAO a single time
-            $daos[$name] = & instantiate($className, ['DAO', 'XMLDAO']);
+            $daos[$name] = new $className();
         }
 
         return $daos[$name];

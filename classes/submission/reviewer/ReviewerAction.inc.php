@@ -22,9 +22,10 @@ use PKP\db\DAORegistry;
 use PKP\log\SubmissionEmailLogEntry;
 use PKP\log\SubmissionLog;
 use PKP\mail\SubmissionMailTemplate;
-
 use PKP\notification\PKPNotification;
+
 use PKP\plugins\HookRegistry;
+use PKP\security\Role;
 
 class ReviewerAction
 {
@@ -65,7 +66,6 @@ class ReviewerAction
             // key, in which case the user is not technically logged in
             $email->setReplyTo($reviewer->getEmail(), $reviewer->getFullName());
             HookRegistry::call('ReviewerAction::confirmReview', [$request, &$submission, &$email, $decline]);
-            import('lib.pkp.classes.log.SubmissionEmailLogEntry'); // Import email event constants
             $email->setEventType($decline ? SubmissionEmailLogEntry::SUBMISSION_EMAIL_REVIEW_DECLINE : SubmissionEmailLogEntry::SUBMISSION_EMAIL_REVIEW_CONFIRM);
             if ($emailText) {
                 $email->setBody($emailText);
@@ -118,7 +118,7 @@ class ReviewerAction
         $context = $request->getContext();
         while ($stageAssignment = $stageAssignments->next()) {
             $userGroup = $userGroupDao->getById($stageAssignment->getUserGroupId());
-            if (!in_array($userGroup->getRoleId(), [ROLE_ID_MANAGER, ROLE_ID_SUB_EDITOR])) {
+            if (!in_array($userGroup->getRoleId(), [Role::ROLE_ID_MANAGER, Role::ROLE_ID_SUB_EDITOR])) {
                 continue;
             }
 

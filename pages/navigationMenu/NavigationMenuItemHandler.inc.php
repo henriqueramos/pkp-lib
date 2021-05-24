@@ -17,6 +17,7 @@ use APP\core\Services;
 
 use APP\handler\Handler;
 use APP\template\TemplateManager;
+use PKP\security\Role;
 
 class NavigationMenuItemHandler extends Handler
 {
@@ -49,14 +50,14 @@ class NavigationMenuItemHandler extends Handler
 
         AppLocale::requireComponents(LOCALE_COMPONENT_PKP_COMMON, LOCALE_COMPONENT_APP_COMMON, LOCALE_COMPONENT_PKP_USER);
         $context = $request->getContext();
-        $contextId = CONTEXT_ID_NONE;
+        $contextId = \PKP\core\PKPApplication::CONTEXT_ID_NONE;
         if ($context) {
             $contextId = $context->getId();
         }
 
         // Ensure that if we're previewing, the current user is a manager or admin.
         $roles = $this->getAuthorizedContextObject(ASSOC_TYPE_USER_ROLES);
-        if (count(array_intersect([ROLE_ID_MANAGER, ROLE_ID_SITE_ADMIN], $roles)) == 0) {
+        if (count(array_intersect([Role::ROLE_ID_MANAGER, Role::ROLE_ID_SITE_ADMIN], $roles)) == 0) {
             fatalError('The current user is not permitted to preview.');
         }
 
@@ -102,7 +103,7 @@ class NavigationMenuItemHandler extends Handler
 
         AppLocale::requireComponents(LOCALE_COMPONENT_PKP_COMMON, LOCALE_COMPONENT_APP_COMMON, LOCALE_COMPONENT_PKP_USER);
         $context = $request->getContext();
-        $contextId = CONTEXT_ID_NONE;
+        $contextId = \PKP\core\PKPApplication::CONTEXT_ID_NONE;
         if ($context) {
             $contextId = $context->getId();
         }

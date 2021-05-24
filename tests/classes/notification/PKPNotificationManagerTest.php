@@ -278,7 +278,7 @@ class PKPNotificationManagerTest extends PKPTestCase
             ->will($this->returnValue(['firstContext', 'secondContext']));
 
         $dispatcher = $mockApplication->getDispatcher(); // this also adds the component router
-        $dispatcher->addRouterName('lib.pkp.classes.core.PKPPageRouter', 'page');
+        $dispatcher->addRouterName('\PKP\core\PKPPageRouter', 'page');
         $dispatcher->setApplication($mockApplication);
 
         $contextDao = $application->getContextDAO();
@@ -453,7 +453,7 @@ class PKPNotificationManagerTest extends PKPTestCase
         $anyTestInteger = 1;
         $notification->setUserId($anyTestInteger);
         $notification->setType($anyTestInteger);
-        $notification->setContextId(CONTEXT_ID_NONE);
+        $notification->setContextId(\PKP\core\PKPApplication::CONTEXT_ID_NONE);
         $notification->setAssocType($anyTestInteger);
         $notification->setAssocId($anyTestInteger);
         $notification->setLevel(Notification::NOTIFICATION_LEVEL_TRIVIAL);

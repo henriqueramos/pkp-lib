@@ -213,17 +213,10 @@ class Dispatcher
     public function &_instantiateRouter($routerName, $shortcut)
     {
         if (!isset($this->_routerInstances[$shortcut])) {
-            // Routers must belong to the classes.core or lib.pkp.classes.core package
-            // NB: This prevents code inclusion attacks.
-            $allowedRouterPackages = [
-                'classes.core',
-                'lib.pkp.classes.core'
-            ];
-
             // Instantiate the router
-            $router = & instantiate($routerName, '\PKP\core\PKPRouter', $allowedRouterPackages);
-            if (!is_object($router)) {
-                fatalError('Cannot instantiate requested router. Routers must belong to the core package and be of type "PKPRouter".');
+            $router = new $routerName();
+            if (!$router instanceof \PKP\core\PKPRouter) {
+                throw new \Exception('Cannot instantiate requested router. Routers must belong to the core package and be of type "PKPRouter".');
             }
             $router->setApplication($this->_application);
             $router->setDispatcher($this);
@@ -281,7 +274,7 @@ class Dispatcher
      */
     public function _cacheContent($contents)
     {
-        assert(is_a($this->_router, 'PKPRouter'));
+        assert($this->_router instanceof \PKP\core\PKPRouter);
         if ($contents == '') {
             return $contents;
         } // Do not cache empties

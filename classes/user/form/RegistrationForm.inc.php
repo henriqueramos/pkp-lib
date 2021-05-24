@@ -16,13 +16,24 @@
  * @brief Form for user registration.
  */
 
+namespace PKP\user\form;
+
+use APP\core\Application;
+use APP\i18n\AppLocale;
 use APP\notification\form\NotificationSettingsForm;
 use APP\notification\NotificationManager;
 use APP\template\TemplateManager;
-use PKP\form\Form;
 
+use PKP\config\Config;
+use PKP\core\Core;
+use PKP\db\DAORegistry;
+use PKP\form\Form;
 use PKP\mail\MailTemplate;
 use PKP\notification\PKPNotification;
+use PKP\security\AccessKeyManager;
+use PKP\security\Role;
+use PKP\security\Validation;
+use PKP\session\SessionManager;
 use PKP\user\InterestManager;
 
 class RegistrationForm extends Form
@@ -111,7 +122,6 @@ class RegistrationForm extends Form
         asort($countries);
         $templateMgr->assign('countries', $countries);
 
-        import('lib.pkp.classes.user.form.UserFormHelper');
         $userFormHelper = new UserFormHelper();
         $userFormHelper->assignRoleContent($templateMgr, $request);
 
@@ -184,8 +194,8 @@ class RegistrationForm extends Form
         if (!$request->getContext()) {
             if ($request->getSite()->getData('privacyStatement')) {
                 $privacyConsent = $this->getData('privacyConsent');
-                if (!is_array($privacyConsent) || !array_key_exists(CONTEXT_ID_NONE, $privacyConsent)) {
-                    $this->addError('privacyConsent[' . CONTEXT_ID_NONE . ']', __('user.register.form.missingSiteConsent'));
+                if (!is_array($privacyConsent) || !array_key_exists(Application::CONTEXT_ID_NONE, $privacyConsent)) {
+                    $this->addError('privacyConsent[' . Application::CONTEXT_ID_NONE . ']', __('user.register.form.missingSiteConsent'));
                 }
             }
 
@@ -284,12 +294,11 @@ class RegistrationForm extends Form
         // Save the selected roles or assign the Reader role if none selected
         if ($request->getContext() && !$this->getData('reviewerGroup')) {
             $userGroupDao = DAORegistry::getDAO('UserGroupDAO'); /** @var UserGroupDAO $userGroupDao */
-            $defaultReaderGroup = $userGroupDao->getDefaultByRoleId($request->getContext()->getId(), ROLE_ID_READER);
+            $defaultReaderGroup = $userGroupDao->getDefaultByRoleId($request->getContext()->getId(), Role::ROLE_ID_READER);
             if ($defaultReaderGroup) {
                 $userGroupDao->assignUserToGroup($user->getId(), $defaultReaderGroup->getId(), $request->getContext()->getId());
             }
         } else {
-            import('lib.pkp.classes.user.form.UserFormHelper');
             $userFormHelper = new UserFormHelper();
             $userFormHelper->saveRoleContent($this, $user);
         }
@@ -322,7 +331,6 @@ class RegistrationForm extends Form
 
         if ($requireValidation) {
             // Create an access key
-            import('lib.pkp.classes.security.AccessKeyManager');
             $accessKeyManager = new AccessKeyManager();
             $accessKey = $accessKeyManager->createKey('RegisterContext', $user->getId(), null, Config::getVar('email', 'validation_timeout'));
 
@@ -364,4 +372,8 @@ class RegistrationForm extends Form
             $mail->setReplyTo($site->getLocalizedContactEmail(), $site->getLocalizedContactName());
         }
     }
+}
+
+if (!PKP_STRICT_MODE) {
+    class_alias('\PKP\user\form\RegistrationForm', '\RegistrationForm');
 }
