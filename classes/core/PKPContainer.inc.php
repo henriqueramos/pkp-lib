@@ -97,6 +97,10 @@ class PKPContainer extends Container
             }
         );
 
+        $this->singleton('pkpQueue', function ($app) {
+            return new PKPQueueProvider();
+        });
+
         Facade::setFacadeApplication($this);
     }
 
