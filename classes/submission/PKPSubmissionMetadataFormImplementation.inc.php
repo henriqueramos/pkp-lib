@@ -17,8 +17,8 @@
 namespace PKP\submission;
 
 use APP\core\Application;
-use APP\core\Services;
 
+use APP\facades\Repo;
 use APP\log\SubmissionEventLogEntry;
 use PKP\db\DAORegistry;
 use PKP\log\SubmissionLog;
@@ -86,7 +86,10 @@ class PKPSubmissionMetadataFormImplementation
                         $this->_parentForm->addCheck(new \PKP\form\validation\FormValidatorLocale($this->_parentForm, $field, 'required', $requiredLocaleKey, $submission->getCurrentPublication()->getData('locale')));
                         break;
                     case in_array($field, $this->getTagitFieldNames()):
-                        $this->_parentForm->addCheck(new \PKP\form\validation\FormValidatorCustom($this->_parentForm, $field, 'required', $requiredLocaleKey, create_function('$field,$form,$name', '$data = (array) $form->getData(\'keywords\'); return array_key_exists($name, $data);'), [$this->_parentForm, $submission->getCurrentPublication()->getData('locale') . '-' . $field]));
+                        $this->_parentForm->addCheck(new \PKP\form\validation\FormValidatorCustom($this->_parentForm, $field, 'required', $requiredLocaleKey, function ($field, $form, $name) {
+                            $data = (array) $form->getData('keywords');
+                            return array_key_exists($name, $data);
+                        }, [$this->_parentForm, $submission->getCurrentPublication()->getData('locale') . '-' . $field]));
                         break;
                     case 'citations':
                         $form = $this->_parentForm;
@@ -216,7 +219,8 @@ class PKPSubmissionMetadataFormImplementation
         }
 
         // Save the publication
-        $publication = Services::get('publication')->edit($publication, $params, $request);
+        Repo::publication()->edit($publication, $params);
+        $publication = Repo::publication()->get($publication->getId());
 
         // get the supported locale keys
         $locales = array_keys($this->_parentForm->supportedLocales);

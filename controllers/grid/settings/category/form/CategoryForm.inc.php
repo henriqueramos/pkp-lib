@@ -13,6 +13,7 @@
  * @brief Form to add/edit category.
  */
 
+use APP\facades\Repo;
 use APP\template\TemplateManager;
 use PKP\file\ContextFileManager;
 use PKP\file\TemporaryFileManager;
@@ -132,8 +133,7 @@ class CategoryForm extends Form
             $this->setData('path', $category->getPath());
             $this->setData('image', $category->getImage());
 
-            $submissionDao = DAORegistry::getDAO('SubmissionDAO'); /** @var SubmissionDAO $submissionDao */
-            $sortOption = $category->getSortOption() ? $category->getSortOption() : $submissionDao->getDefaultSortOption();
+            $sortOption = $category->getSortOption() ? $category->getSortOption() : Repo::submission()->getDefaultSortOption();
             $this->setData('sortOption', $sortOption);
         }
     }
@@ -208,8 +208,7 @@ class CategoryForm extends Form
             }
         }
         // Sort options.
-        $submissionDao = DAORegistry::getDAO('SubmissionDAO'); /** @var SubmissionDAO $submissionDao */
-        $templateMgr->assign('sortOptions', $submissionDao->getSortSelectOptions());
+        $templateMgr->assign('sortOptions', Repo::submission()->getSortSelectOptions());
 
         // Sub Editors
         $usersIterator = Services::get('user')->getMany([

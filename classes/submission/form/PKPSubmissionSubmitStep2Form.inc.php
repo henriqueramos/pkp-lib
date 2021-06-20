@@ -17,6 +17,7 @@ namespace PKP\submission\form;
 
 use APP\core\Application;
 use APP\core\Services;
+use APP\facades\Repo;
 use APP\template\TemplateManager;
 use PKP\core\PKPApplication;
 
@@ -112,6 +113,7 @@ class PKPSubmissionSubmitStep2Form extends SubmissionSubmitForm
                     'items' => $submissionFiles,
                     'options' => [
                         'maxFilesize' => Application::getIntMaxFileMBs(),
+                        'timeout' => ini_get('max_execution_time') ? ini_get('max_execution_time') * 1000 : 0,
                         'dropzoneDictDefaultMessage' => __('form.dropzone.dictDefaultMessage'),
                         'dropzoneDictFallbackMessage' => __('form.dropzone.dictFallbackMessage'),
                         'dropzoneDictFallbackText' => __('form.dropzone.dictFallbackText'),
@@ -175,14 +177,13 @@ class PKPSubmissionSubmitStep2Form extends SubmissionSubmitForm
         parent::execute(...$functionArgs);
 
         // Update submission
-        $submissionDao = DAORegistry::getDAO('SubmissionDAO'); /** @var SubmissionDAO $submissionDao */
         $submission = $this->submission;
 
         if ($submission->getSubmissionProgress() <= $this->step) {
             $submission->stampLastActivity();
             $submission->stampModified();
             $submission->setSubmissionProgress($this->step + 1);
-            $submissionDao->updateObject($submission);
+            Repo::submission()->dao->update($submission);
         }
 
         return $this->submissionId;

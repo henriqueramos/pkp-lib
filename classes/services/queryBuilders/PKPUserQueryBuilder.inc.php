@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file classes/services/QueryBuilders/PKPUserQueryBuilder.php
  *
@@ -594,6 +595,10 @@ class PKPUserQueryBuilder implements EntityQueryBuilderInterface
                             })
                             ->orWhere(function ($q) use ($word) {
                                 $q->where('us.setting_name', Identity::IDENTITY_SETTING_FAMILYNAME);
+                                $q->where(DB::raw('lower(us.setting_value)'), 'LIKE', "%{$word}%");
+                            })
+                            ->orWhere(function ($q) use ($word) {
+                                $q->where('us.setting_name', 'preferredPublicName');
                                 $q->where(DB::raw('lower(us.setting_value)'), 'LIKE', "%{$word}%");
                             })
                             ->orWhere(function ($q) use ($word) {
