@@ -17,8 +17,7 @@
 
 namespace PKP\user;
 
-use APP\core\Application;
-use APP\core\Services;
+use APP\facades\Repo;
 use PKP\db\DAORegistry;
 use PKP\plugins\HookRegistry;
 
@@ -39,12 +38,17 @@ class PKPUserAction
 
         HookRegistry::call('UserAction::mergeUsers', [&$oldUserId, &$newUserId]);
 
-        $submissionFilesIterator = Services::get('submissionFile')->getMany([
-            'uploaderUserIds' => [$oldUserId],
-            'includeDependentFiles' => true,
-        ]);
+        $collector = Repo::submissionFiles()
+            ->getCollector()
+            ->filterByUploaderUserIds([$oldUserId])
+            ->filterByIncludeDependentFiles(true);
+        $submissionFilesIterator = Repo::submissionFiles()->getMany($collector);
         foreach ($submissionFilesIterator as $submissionFile) {
-            Services::get('submissionFile')->edit($submissionFile, ['uploaderUserId' => $newUserId], Application::get()->getRequest());
+            Repo::submissionFiles()
+                ->edit(
+                    $submissionFile,
+                    ['uploaderUserId' => $newUserId]
+                );
         }
 
         $noteDao = DAORegistry::getDAO('NoteDAO'); /** @var NoteDAO $noteDao */
